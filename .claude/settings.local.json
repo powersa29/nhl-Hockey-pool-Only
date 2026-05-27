@@ -62,7 +62,9 @@
       "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__get_project_url",
       "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__get_publishable_keys",
       "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__apply_migration",
-      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__execute_sql"
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__execute_sql",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__get_project",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__list_migrations"
     ]
   }
 }
