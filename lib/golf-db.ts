@@ -143,6 +143,28 @@ export async function getAllTees(): Promise<Tee[]> {
   return data ?? [];
 }
 
+export async function createCourse(name: string, city: string, state: string): Promise<Course> {
+  const { data, error } = await db()
+    .from('golf_courses')
+    .insert({ name, city, state })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createTee(courseId: number, tee: {
+  tee_name: string; slope_rating: number; course_rating: number; yards_9: number | null;
+}): Promise<Tee> {
+  const { data, error } = await db()
+    .from('golf_tees')
+    .insert({ course_id: courseId, ...tee })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 // ── Leagues ───────────────────────────────────────────────────────────────────
 
 export async function getOrCreateCurrentLeague(): Promise<League> {
