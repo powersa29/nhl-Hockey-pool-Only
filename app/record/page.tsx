@@ -260,6 +260,7 @@ export default function RecordPage() {
         <AddCourseModal
           onClose={() => setShowAddCourse(false)}
           onAdded={handleCourseAdded}
+          existingCourses={courses}
         />
       )}
     </div>

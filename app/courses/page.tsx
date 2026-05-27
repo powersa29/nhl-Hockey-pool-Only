@@ -150,6 +150,7 @@ export default function CoursesPage() {
         <AddCourseModal
           onClose={() => setShowForm(false)}
           onAdded={(_id) => { loadCourses(); setShowForm(false); }}
+          existingCourses={courses}
         />
       )}
     </div>

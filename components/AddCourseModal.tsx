@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 
 interface TeeInput {
   tee_name: string;
@@ -9,47 +9,17 @@ interface TeeInput {
   yards_9: string;
 }
 
-interface CourseHit { name: string; city: string; state: string; }
+interface ExistingCourse {
+  id: number;
+  name: string;
+  city: string;
+  state: string;
+}
 
-const STATE_ABBR: Record<string, string> = {
-  Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',
-  Colorado:'CO',Connecticut:'CT',Delaware:'DE',Florida:'FL',Georgia:'GA',
-  Hawaii:'HI',Idaho:'ID',Illinois:'IL',Indiana:'IN',Iowa:'IA',
-  Kansas:'KS',Kentucky:'KY',Louisiana:'LA',Maine:'ME',Maryland:'MD',
-  Massachusetts:'MA',Michigan:'MI',Minnesota:'MN',Mississippi:'MS',
-  Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:'NV','New Hampshire':'NH',
-  'New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC',
-  'North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA',
-  'Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',
-  Texas:'TX',Utah:'UT',Vermont:'VT',Virginia:'VA',Washington:'WA',
-  'West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY',
-};
-
-interface PhotonProps { name?: string; city?: string; town?: string; village?: string; county?: string; state?: string; countrycode?: string; osm_key?: string; osm_value?: string; }
-
-async function searchCourses(q: string): Promise<CourseHit[]> {
-  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q + ' golf')}&limit=10&lang=en`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const json = await res.json();
-  const seen = new Set<string>();
-  const results: CourseHit[] = [];
-  for (const f of json.features ?? []) {
-    const p: PhotonProps = f.properties ?? {};
-    if (p.countrycode !== 'US') continue;
-    const isGolf = p.osm_key === 'leisure' && p.osm_value === 'golf_course';
-    const nameHasGolf = p.name?.toLowerCase().includes('golf') ?? false;
-    if (!isGolf && !nameHasGolf) continue;
-    const name = p.name?.trim();
-    if (!name) continue;
-    const city = (p.city ?? p.town ?? p.village ?? p.county ?? '').replace(/ County$/, '').trim();
-    const state = STATE_ABBR[p.state ?? ''] ?? '';
-    const key = `${name}|${state}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    results.push({ name, city, state });
-  }
-  return results.slice(0, 6);
+interface Props {
+  onClose: () => void;
+  onAdded: (courseId: number, courseName: string) => void;
+  existingCourses?: ExistingCourse[];
 }
 
 const DEFAULT_TEES: TeeInput[] = [
@@ -58,39 +28,29 @@ const DEFAULT_TEES: TeeInput[] = [
   { tee_name: 'Black', slope_rating: '', course_rating: '', yards_9: '' },
 ];
 
-interface Props {
-  onClose: () => void;
-  onAdded: (courseId: number, courseName: string) => void;
-}
-
-export default function AddCourseModal({ onClose, onAdded }: Props) {
+export default function AddCourseModal({ onClose, onAdded, existingCourses = [] }: Props) {
   const [fName, setFName] = useState('');
   const [fCity, setFCity] = useState('');
   const [fState, setFState] = useState('');
   const [fTees, setFTees] = useState<TeeInput[]>(DEFAULT_TEES.map(t => ({ ...t })));
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [searchQ, setSearchQ] = useState('');
 
-  const [lookupQ, setLookupQ] = useState('');
-  const [lookupHits, setLookupHits] = useState<CourseHit[]>([]);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const lookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Filter existing courses as user types
+  const suggestions = searchQ.length >= 2
+    ? existingCourses.filter(c =>
+        c.name.toLowerCase().includes(searchQ.toLowerCase()) ||
+        c.city.toLowerCase().includes(searchQ.toLowerCase())
+      ).slice(0, 6)
+    : [];
 
-  useEffect(() => {
-    if (lookupTimer.current) clearTimeout(lookupTimer.current);
-    if (lookupQ.length < 3) { setLookupHits([]); return; }
-    lookupTimer.current = setTimeout(async () => {
-      setLookupLoading(true);
-      try {
-        setLookupHits(await searchCourses(lookupQ));
-      } catch { setLookupHits([]); }
-      setLookupLoading(false);
-    }, 400);
-  }, [lookupQ]);
-
-  function selectHit(hit: CourseHit) {
-    setFName(hit.name); setFCity(hit.city); setFState(hit.state);
-    setLookupQ(''); setLookupHits([]);
+  function selectExisting(c: ExistingCourse) {
+    // Course already exists — pre-fill and let them know
+    setFName(c.name);
+    setFCity(c.city);
+    setFState(c.state);
+    setSearchQ('');
   }
 
   function updateTee(i: number, field: keyof TeeInput, val: string) {
@@ -116,6 +76,17 @@ export default function AddCourseModal({ onClose, onAdded }: Props) {
     if (validTees.some(t => Number(t.course_rating) < 20 || Number(t.course_rating) > 50)) {
       setFormError('Course rating should be a 9-hole value (e.g. 34.5).'); return;
     }
+
+    // Check for duplicate name
+    const dupe = existingCourses.find(c =>
+      c.name.toLowerCase() === fName.trim().toLowerCase() &&
+      c.state.toLowerCase() === fState.trim().toLowerCase()
+    );
+    if (dupe) {
+      setFormError(`"${dupe.name}" is already in the directory under ${dupe.city}, ${dupe.state}.`);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch('/api/courses', {
@@ -156,57 +127,57 @@ export default function AddCourseModal({ onClose, onAdded }: Props) {
           <button onClick={onClose} style={closeBtnStyle}>×</button>
         </div>
 
-        {/* Nationwide search */}
+        {/* Search existing courses first */}
         <div style={{
           background: 'color-mix(in oklab, var(--green) 8%, var(--paper))',
           border: '1.5px solid var(--green)',
           borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 22,
         }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-dark)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Search nationwide to pre-fill
+            Already in the directory?
           </div>
           <input
             type="search"
-            placeholder="Type a course name (e.g. Pinehurst, Augusta)…"
-            value={lookupQ}
-            onChange={e => setLookupQ(e.target.value)}
+            placeholder="Search existing courses (e.g. Birkdale, Independence)…"
+            value={searchQ}
+            onChange={e => setSearchQ(e.target.value)}
             style={{
               width: '100%', padding: '9px 12px', boxSizing: 'border-box',
               border: '1.5px solid var(--line)', borderRadius: 'var(--radius)',
               background: 'var(--paper)', color: 'var(--ink)', fontSize: 14, outline: 'none',
             }}
           />
-          {lookupLoading && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>Searching…</div>}
-          {lookupHits.length > 0 && (
+          {suggestions.length > 0 && (
             <div style={{ marginTop: 8, border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--paper)' }}>
-              {lookupHits.map((hit, i) => (
+              {suggestions.map((c, i) => (
                 <button
-                  key={i} type="button" onClick={() => selectHit(hit)}
+                  key={c.id} type="button"
+                  onClick={() => selectExisting(c)}
                   style={{
-                    display: 'block', width: '100%', textAlign: 'left',
+                    display: 'flex', width: '100%', textAlign: 'left', alignItems: 'center', justifyContent: 'space-between',
                     padding: '10px 14px', background: 'none', border: 'none',
-                    borderBottom: i < lookupHits.length - 1 ? '1px solid var(--line)' : 'none',
-                    cursor: 'pointer', fontSize: 13,
+                    borderBottom: i < suggestions.length - 1 ? '1px solid var(--line)' : 'none',
+                    cursor: 'pointer', fontSize: 13, gap: 8,
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--ice-2)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                 >
-                  <span style={{ fontWeight: 600 }}>{hit.name}</span>
-                  {(hit.city || hit.state) && (
-                    <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
-                      {hit.city}{hit.city && hit.state ? ', ' : ''}{hit.state}
-                    </span>
-                  )}
+                  <span style={{ fontWeight: 600 }}>{c.name}</span>
+                  <span style={{ color: 'var(--muted)', fontSize: 12, flexShrink: 0 }}>{c.city}, {c.state} — already added</span>
                 </button>
               ))}
             </div>
           )}
-          {!lookupLoading && lookupQ.length >= 3 && lookupHits.length === 0 && (
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>No results — fill in the fields below manually.</div>
+          {searchQ.length >= 2 && suggestions.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+              Not found — fill in the fields below to add it.
+            </div>
           )}
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
-            Selects name, city &amp; state. You&apos;ll still enter slope &amp; rating from your scorecard.
-          </div>
+          {searchQ.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+              Type to check before adding a duplicate. Skip this if you know it&apos;s new.
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -253,7 +224,7 @@ export default function AddCourseModal({ onClose, onAdded }: Props) {
                         value={tee.slope_rating} onChange={e => updateTee(i, 'slope_rating', e.target.value)} style={{ marginTop: 4 }} />
                     </label>
                     <label style={labelStyle}>
-                      Rating (9-hole)
+                      Rating (9h)
                       <input className="input" type="number" min="20" max="50" step="0.1" placeholder="34.5"
                         value={tee.course_rating} onChange={e => updateTee(i, 'course_rating', e.target.value)} style={{ marginTop: 4 }} />
                     </label>
@@ -279,8 +250,8 @@ export default function AddCourseModal({ onClose, onAdded }: Props) {
           </div>
 
           <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.6 }}>
-            Slope &amp; rating are on your scorecard or at <strong>USGA.org</strong>.
-            If you only have 18-hole ratings, divide course rating by 2 — slope stays the same.
+            Slope &amp; rating are printed on your scorecard or at <strong>USGA.org</strong>.
+            If you only have 18-hole ratings, divide the course rating by 2 — slope stays the same.
           </p>
 
           {formError && (
