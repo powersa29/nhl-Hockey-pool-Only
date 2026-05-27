@@ -4,7 +4,7 @@ import './golf.css';
 import GolfHeader from '@/components/GolfHeader';
 
 export const metadata: Metadata = {
-  title: 'Golf League',
+  title: 'Glizzy Golf League',
   description: '9-hole weekly stroke play. Handicap-adjusted net scoring.',
 };
 
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <GolfHeader />
             {children}
             <footer style={{ marginTop: 48, paddingTop: 20, borderTop: '2px dashed var(--line)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
-              Golf League · 9-hole weekly stroke play · Handicap-adjusted net scoring
+              Glizzy Golf League 🌭 · 9-hole weekly stroke play · Handicap-adjusted net scoring
             </footer>
           </div>
         </div>
