@@ -1,24 +1,16 @@
 export default function RulesPage() {
   const rules = [
     {
-      t: 'Join the League',
-      b: 'Register with your name and USGA Handicap Index (0–54). Your handicap adjusts your score so players of all skill levels compete fairly.',
+      t: 'Play up to 4 rounds a week',
+      b: 'Record as many rounds as you want each week, up to 4. Play different courses, different tees — it all counts.',
     },
     {
-      t: 'Play 9 Holes',
-      b: 'Record up to 4 rounds per week at any public course in the directory. Only your best net score from that week counts toward standings.',
+      t: 'We take your best score',
+      b: 'Only your best net score from that week goes into the standings. Play more rounds for more chances at a great score.',
     },
     {
-      t: 'Net Scoring',
-      b: 'Your Course Handicap for 9 holes is calculated from your Handicap Index and the tee\'s slope rating. Subtract it from your gross score to get your net score. Lower net is better.',
-    },
-    {
-      t: 'Weekly Points',
-      b: 'At the end of each week, players are ranked by their best net score. The top finishers earn points: 1st gets 10, 2nd gets 7, and so on. Everyone who plays earns at least 1 point.',
-    },
-    {
-      t: 'Season Standings',
-      b: 'Points accumulate all season — the leaderboard never resets between weeks. Play consistently to climb the standings and stay on top through the year.',
+      t: 'Points accumulate all season',
+      b: 'Weekly finishes earn points that stack up all year long. The leaderboard never resets — play consistently to stay on top.',
     },
   ];
 
