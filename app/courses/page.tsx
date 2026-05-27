@@ -275,7 +275,7 @@ export default function CoursesPage() {
             <div style={{
               background: 'color-mix(in oklab, var(--green) 8%, var(--paper))',
               border: '1.5px solid var(--green)',
-              borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 22, position: 'relative',
+              borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 22,
             }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-dark)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Search nationwide to pre-fill
@@ -292,14 +292,13 @@ export default function CoursesPage() {
                 }}
               />
               {lookupLoading && (
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>Searching…</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>Searching…</div>
               )}
               {lookupHits.length > 0 && (
                 <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, marginTop: 4,
-                  background: 'var(--paper)', border: '1.5px solid var(--line)',
-                  borderRadius: 'var(--radius)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                  overflow: 'hidden',
+                  marginTop: 8, border: '1.5px solid var(--line)',
+                  borderRadius: 'var(--radius)', overflow: 'hidden',
+                  background: 'var(--paper)',
                 }}>
                   {lookupHits.map((hit, i) => (
                     <button
@@ -316,13 +315,22 @@ export default function CoursesPage() {
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                     >
                       <span style={{ fontWeight: 600 }}>{hit.name}</span>
-                      <span style={{ color: 'var(--muted)', marginLeft: 8 }}>{hit.city}{hit.city && hit.state ? ', ' : ''}{hit.state}</span>
+                      {(hit.city || hit.state) && (
+                        <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
+                          {hit.city}{hit.city && hit.state ? ', ' : ''}{hit.state}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
               )}
+              {!lookupLoading && lookupQ.length >= 3 && lookupHits.length === 0 && (
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+                  No results — fill in the fields below manually.
+                </div>
+              )}
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
-                Selects name, city, and state. You&apos;ll still enter slope &amp; rating from your scorecard.
+                Selects name, city &amp; state. You&apos;ll still enter slope &amp; rating from your scorecard.
               </div>
             </div>
 
