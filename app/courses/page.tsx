@@ -9,20 +9,25 @@ const STATES = ['NY', 'MD', 'PA', 'VA'];
 const STATE_LABELS: Record<string, string> = {
   NY: 'New York (near Buffalo)',
   MD: 'Maryland (near White Hall / Baltimore)',
-  PA: 'Pennsylvania (near York)',
+  PA: 'Pennsylvania (near York / Gettysburg)',
   VA: 'Virginia (near Midlothian / Richmond)',
 };
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<CourseWithTees[]>([]);
   const [stateFilter, setStateFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/courses').then(r => r.json()).then(setCourses);
   }, []);
 
-  const filtered = stateFilter ? courses.filter(c => c.state === stateFilter) : courses;
+  const q = search.toLowerCase();
+  const filtered = courses.filter(c =>
+    (stateFilter === '' || c.state === stateFilter) &&
+    (q === '' || c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q))
+  );
 
   const grouped: Record<string, CourseWithTees[]> = {};
   for (const c of filtered) {
@@ -36,10 +41,23 @@ export default function CoursesPage() {
         <h2>Course Directory</h2>
         <span className="tag green">{courses.length} courses</span>
       </div>
-      <p style={{ marginBottom: 24, color: 'var(--ink-soft)', fontSize: 14, lineHeight: 1.6 }}>
+      <p style={{ marginBottom: 20, color: 'var(--ink-soft)', fontSize: 14, lineHeight: 1.6 }}>
         Public courses within 55 miles of Buffalo NY (14225), White Hall MD (21161), and Midlothian VA (23112).
         Each course lists White, Blue, and Black tee options with slope and course ratings.
       </p>
+
+      <input
+        type="search"
+        placeholder="Search by course or city name…"
+        value={search}
+        onChange={e => { setSearch(e.target.value); setExpandedId(null); }}
+        style={{
+          width: '100%', padding: '10px 14px', marginBottom: 16,
+          border: '1.5px solid var(--line)', borderRadius: 'var(--radius)',
+          background: 'var(--ice-2)', color: 'var(--ink)', fontSize: 14,
+          outline: 'none',
+        }}
+      />
 
       <div className="state-tabs">
         <button className={`state-tab ${stateFilter === '' ? 'active' : ''}`} onClick={() => setStateFilter('')}>
@@ -51,6 +69,10 @@ export default function CoursesPage() {
           </button>
         ))}
       </div>
+
+      {filtered.length === 0 && (
+        <div className="empty-state">No courses match "{search}"</div>
+      )}
 
       {Object.entries(grouped).map(([state, list]) => (
         <div key={state} style={{ marginBottom: 32 }}>
