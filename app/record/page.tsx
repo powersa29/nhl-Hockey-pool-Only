@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import type { Player, Course, Tee } from '@/lib/golf-db';
 import { courseHandicap9, netScore } from '@/lib/golf-scoring';
+import AddCourseModal from '@/components/AddCourseModal';
 
 type CourseWithTees = Course & { tees: Tee[] };
-
-const STATES = ['NY', 'MD', 'PA', 'VA'];
 
 export default function RecordPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [courses, setCourses] = useState<CourseWithTees[]>([]);
   const [stateFilter, setStateFilter] = useState('');
+  const [showAddCourse, setShowAddCourse] = useState(false);
 
   const [playerId, setPlayerId] = useState('');
   const [courseId, setCourseId] = useState('');
@@ -24,15 +24,18 @@ export default function RecordPage() {
   const [error, setError] = useState('');
   const [roundsThisWeek, setRoundsThisWeek] = useState<number | null>(null);
 
+  async function loadCourses() {
+    const data = await fetch('/api/courses').then(r => r.json());
+    setCourses(data);
+  }
+
   useEffect(() => {
     fetch('/api/players').then(r => r.json()).then(setPlayers);
-    fetch('/api/courses').then(r => r.json()).then(setCourses);
+    loadCourses();
   }, []);
 
   const player = players.find(p => p.id === Number(playerId));
-  const filteredCourses = stateFilter
-    ? courses.filter(c => c.state === stateFilter)
-    : courses;
+  const filteredCourses = stateFilter ? courses.filter(c => c.state === stateFilter) : courses;
   const course = courses.find(c => c.id === Number(courseId));
   const tee = course?.tees.find(t => t.id === Number(teeId));
 
@@ -43,6 +46,8 @@ export default function RecordPage() {
   const chcp = player && tee
     ? courseHandicap9(player.handicap_index, tee.slope_rating)
     : null;
+
+  const stateList = useMemo(() => [...new Set(courses.map(c => c.state))].sort(), [courses]);
 
   useEffect(() => {
     if (!playerId) { setRoundsThisWeek(null); return; }
@@ -83,6 +88,13 @@ export default function RecordPage() {
     setRoundsThisWeek(null);
   }
 
+  async function handleCourseAdded(courseId: number) {
+    await loadCourses();
+    setCourseId(String(courseId));
+    setTeeId('');
+    setShowAddCourse(false);
+  }
+
   if (done) {
     return (
       <div style={{ maxWidth: 500 }}>
@@ -91,7 +103,7 @@ export default function RecordPage() {
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn" onClick={reset}>Record Another Round</button>
-          <Link href="/golf"><button className="btn ghost">See Standings</button></Link>
+          <Link href="/"><button className="btn ghost">See Standings</button></Link>
           {player && <Link href={`/player/${player.id}`}><button className="btn ghost">My Rounds</button></Link>}
         </div>
       </div>
@@ -138,7 +150,7 @@ export default function RecordPage() {
               onClick={() => { setStateFilter(''); setCourseId(''); setTeeId(''); }}>
               All
             </button>
-            {STATES.map(s => (
+            {stateList.map(s => (
               <button key={s} type="button"
                 className={`state-tab ${stateFilter === s ? 'active' : ''}`}
                 onClick={() => { setStateFilter(s); setCourseId(''); setTeeId(''); }}>
@@ -163,6 +175,25 @@ export default function RecordPage() {
               </option>
             ))}
           </select>
+          {/* Add Course inline prompt */}
+          <div style={{
+            marginTop: 8, padding: '10px 14px',
+            background: 'var(--ice-2)', border: '1.5px solid var(--line)',
+            borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+          }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+              Don&apos;t see your course?
+            </span>
+            <button
+              type="button"
+              className="btn ghost"
+              style={{ fontSize: 12, padding: '6px 12px' }}
+              onClick={() => setShowAddCourse(true)}
+            >
+              + Add a Course
+            </button>
+          </div>
         </div>
 
         {/* Tees */}
@@ -224,6 +255,13 @@ export default function RecordPage() {
           </button>
         </div>
       </form>
+
+      {showAddCourse && (
+        <AddCourseModal
+          onClose={() => setShowAddCourse(false)}
+          onAdded={handleCourseAdded}
+        />
+      )}
     </div>
   );
 }
