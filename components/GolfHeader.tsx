@@ -19,7 +19,7 @@ export default function GolfHeader() {
       <div className="brand">
         <div className="brand-mark">⛳</div>
         <div>
-          <div className="brand-name">Golf League</div>
+          <div className="brand-name">Glizzy Golf League 🌭</div>
           <div className="brand-sub">Weekly 9-Hole Stroke Play</div>
         </div>
       </div>
