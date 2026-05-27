@@ -233,6 +233,15 @@ export async function deleteRound(id: number): Promise<void> {
   if (error) throw error;
 }
 
+export async function getAllRounds(): Promise<Round[]> {
+  const { data, error } = await db()
+    .from('golf_rounds')
+    .select('*, golf_players(name, handicap_index), golf_courses(name, city, state), golf_tees(tee_name, slope_rating, course_rating), golf_leagues(name, start_date)')
+    .order('played_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 // ── Standings ─────────────────────────────────────────────────────────────────
 
 export async function getStandings(leagueId: number): Promise<StandingRow[]> {
