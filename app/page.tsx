@@ -18,7 +18,7 @@ export default async function Home() {
   ]);
 
   // Augment participants with live scores
-  const participants = rawParticipants.map((p, idx) => {
+  const participants = rawParticipants.map((p) => {
     const total = (p.roster ?? []).reduce((sum: number, pick: { playerName: string; pos: string }) => {
       const s = lookupStats(statsMap as never, pick.playerName);
       return sum + (s?.pts ?? 0);
