@@ -4,11 +4,11 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 const NAV = [
-  { href: '/',        label: 'Standings' },
-  { href: '/record',  label: 'Record Round' },
-  { href: '/courses', label: 'Courses' },
-  { href: '/join',    label: 'Join' },
-  { href: '/rules',   label: 'How It Works' },
+  { href: '/golf',           label: 'Standings' },
+  { href: '/golf/record',    label: 'Record Round' },
+  { href: '/golf/courses',   label: 'Courses' },
+  { href: '/golf/join',      label: 'Join' },
+  { href: '/golf/rules',     label: 'How It Works' },
 ];
 
 export default function GolfHeader() {

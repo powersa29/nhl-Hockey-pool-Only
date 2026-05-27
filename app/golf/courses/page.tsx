@@ -19,7 +19,7 @@ export default function CoursesPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch('/api/courses').then(r => r.json()).then(setCourses);
+    fetch('/api/golf/courses').then(r => r.json()).then(setCourses);
   }, []);
 
   const filtered = stateFilter ? courses.filter(c => c.state === stateFilter) : courses;
