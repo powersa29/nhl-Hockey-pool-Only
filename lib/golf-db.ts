@@ -64,6 +64,16 @@ export interface StandingRow {
   rank: number;
 }
 
+export interface SeasonStandingRow {
+  player: Player;
+  points: number;
+  weeksPlayed: number;
+  totalRounds: number;
+  rank: number;
+}
+
+const WEEK_POINTS = [10, 7, 5, 4, 3, 2, 1];
+
 // ── Players ──────────────────────────────────────────────────────────────────
 
 export async function getPlayers(): Promise<Player[]> {
@@ -251,6 +261,45 @@ export async function getStandings(leagueId: number): Promise<StandingRow[]> {
     if (a.bestNet !== null && b.bestNet !== null) return a.bestNet - b.bestNet;
     if (a.bestNet !== null) return -1;
     if (b.bestNet !== null) return 1;
+    return a.player.name.localeCompare(b.player.name);
+  });
+
+  rows.forEach((r, i) => { r.rank = i + 1; });
+  return rows;
+}
+
+// ── Season Standings ──────────────────────────────────────────────────────────
+
+export async function getSeasonStandings(): Promise<SeasonStandingRow[]> {
+  const [players, leagues] = await Promise.all([getPlayers(), getLeagues()]);
+
+  const pts = new Map<number, number>();
+  const weeks = new Map<number, number>();
+  const rounds = new Map<number, number>();
+  for (const p of players) { pts.set(p.id, 0); weeks.set(p.id, 0); rounds.set(p.id, 0); }
+
+  await Promise.all(
+    leagues.map(async l => {
+      const standing = await getStandings(l.id);
+      const active = standing.filter(r => r.bestNet !== null);
+      active.forEach((row, i) => {
+        pts.set(row.player.id, (pts.get(row.player.id) ?? 0) + (WEEK_POINTS[i] ?? 1));
+        weeks.set(row.player.id, (weeks.get(row.player.id) ?? 0) + 1);
+        rounds.set(row.player.id, (rounds.get(row.player.id) ?? 0) + row.roundsPlayed);
+      });
+    })
+  );
+
+  const rows: SeasonStandingRow[] = players.map(player => ({
+    player,
+    points: pts.get(player.id) ?? 0,
+    weeksPlayed: weeks.get(player.id) ?? 0,
+    totalRounds: rounds.get(player.id) ?? 0,
+    rank: 0,
+  }));
+
+  rows.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
     return a.player.name.localeCompare(b.player.name);
   });
 

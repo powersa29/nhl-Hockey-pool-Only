@@ -1,4 +1,4 @@
-import { getOrCreateCurrentLeague, getLeagues, getStandings } from '@/lib/golf-db';
+import { getOrCreateCurrentLeague, getLeagues, getStandings, getSeasonStandings } from '@/lib/golf-db';
 import { weekLabel } from '@/lib/golf-scoring';
 import GolfStandingsPage from '@/components/GolfStandingsPage';
 
@@ -10,16 +10,21 @@ export default async function GolfHome() {
     getLeagues(),
   ]);
 
-  const standings = await getStandings(currentLeague.id);
-  const playersWithRounds = standings.filter(r => r.roundsPlayed > 0).length;
-  const totalRounds = standings.reduce((s, r) => s + r.roundsPlayed, 0);
+  const [weekStandings, seasonStandings] = await Promise.all([
+    getStandings(currentLeague.id),
+    getSeasonStandings(),
+  ]);
+
+  const playersWithRounds = weekStandings.filter(r => r.roundsPlayed > 0).length;
+  const totalRounds = weekStandings.reduce((s, r) => s + r.roundsPlayed, 0);
 
   return (
     <GolfStandingsPage
       currentLeague={currentLeague}
       allLeagues={allLeagues}
-      initialStandings={standings}
-      stats={{ playersWithRounds, totalRounds, totalPlayers: standings.length }}
+      initialStandings={weekStandings}
+      initialSeasonStandings={seasonStandings}
+      stats={{ playersWithRounds, totalRounds, totalPlayers: weekStandings.length }}
       initialLabel={weekLabel(currentLeague.start_date)}
     />
   );
