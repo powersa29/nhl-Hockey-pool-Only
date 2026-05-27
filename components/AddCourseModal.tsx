@@ -11,6 +11,47 @@ interface TeeInput {
 
 interface CourseHit { name: string; city: string; state: string; }
 
+const STATE_ABBR: Record<string, string> = {
+  Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',
+  Colorado:'CO',Connecticut:'CT',Delaware:'DE',Florida:'FL',Georgia:'GA',
+  Hawaii:'HI',Idaho:'ID',Illinois:'IL',Indiana:'IN',Iowa:'IA',
+  Kansas:'KS',Kentucky:'KY',Louisiana:'LA',Maine:'ME',Maryland:'MD',
+  Massachusetts:'MA',Michigan:'MI',Minnesota:'MN',Mississippi:'MS',
+  Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:'NV','New Hampshire':'NH',
+  'New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC',
+  'North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA',
+  'Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',
+  Texas:'TX',Utah:'UT',Vermont:'VT',Virginia:'VA',Washington:'WA',
+  'West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY',
+};
+
+interface PhotonProps { name?: string; city?: string; town?: string; village?: string; county?: string; state?: string; countrycode?: string; osm_key?: string; osm_value?: string; }
+
+async function searchCourses(q: string): Promise<CourseHit[]> {
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q + ' golf')}&limit=10&lang=en`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const json = await res.json();
+  const seen = new Set<string>();
+  const results: CourseHit[] = [];
+  for (const f of json.features ?? []) {
+    const p: PhotonProps = f.properties ?? {};
+    if (p.countrycode !== 'US') continue;
+    const isGolf = p.osm_key === 'leisure' && p.osm_value === 'golf_course';
+    const nameHasGolf = p.name?.toLowerCase().includes('golf') ?? false;
+    if (!isGolf && !nameHasGolf) continue;
+    const name = p.name?.trim();
+    if (!name) continue;
+    const city = (p.city ?? p.town ?? p.village ?? p.county ?? '').replace(/ County$/, '').trim();
+    const state = STATE_ABBR[p.state ?? ''] ?? '';
+    const key = `${name}|${state}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push({ name, city, state });
+  }
+  return results.slice(0, 6);
+}
+
 const DEFAULT_TEES: TeeInput[] = [
   { tee_name: 'White', slope_rating: '', course_rating: '', yards_9: '' },
   { tee_name: 'Blue',  slope_rating: '', course_rating: '', yards_9: '' },
@@ -41,8 +82,7 @@ export default function AddCourseModal({ onClose, onAdded }: Props) {
     lookupTimer.current = setTimeout(async () => {
       setLookupLoading(true);
       try {
-        const res = await fetch(`/api/courses/search?q=${encodeURIComponent(lookupQ)}`);
-        setLookupHits(await res.json());
+        setLookupHits(await searchCourses(lookupQ));
       } catch { setLookupHits([]); }
       setLookupLoading(false);
     }, 400);
