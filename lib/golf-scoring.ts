@@ -22,6 +22,36 @@ export function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Score differential for a 9-hole round, converted to 18-hole equivalent (WHS)
+export function scoreDifferential9(gross: number, courseRating9: number, slope: number): number {
+  return ((gross - courseRating9) * 113 / slope) * 2;
+}
+
+export interface HandicapCalc {
+  calculatedHI: number;
+  diffsUsed: number;   // how many best differentials were averaged
+  totalRounds: number;
+}
+
+// WHS lookup: [bestN, adjustment] for 1–20 rounds (index 0 = 1 round)
+const WHS: [number, number][] = [
+  [1, -3.0], [1, -2.5], [1, -2.0], [1, -1.0], [1,  0.0],
+  [2, -1.0], [2,  0.0], [2,  0.0], [3,  0.0], [3,  0.0],
+  [3,  0.0], [4,  0.0], [4,  0.0], [4,  0.0], [5,  0.0],
+  [5,  0.0], [6,  0.0], [6,  0.0], [7,  0.0], [8,  0.0],
+];
+
+// differentials must be ordered most-recent first
+export function calcHandicapIndex(differentials: number[]): HandicapCalc | null {
+  const n = differentials.length;
+  if (n === 0) return null;
+  const [bestN, adj] = WHS[Math.min(n, 20) - 1];
+  const working = differentials.slice(0, 20).sort((a, b) => a - b);
+  const avg = working.slice(0, bestN).reduce((s, d) => s + d, 0) / bestN;
+  const hi = Math.max(0, Math.floor((avg + adj) * 0.96 * 10) / 10);
+  return { calculatedHI: hi, diffsUsed: bestN, totalRounds: n };
+}
+
 export function weekLabel(startDate: string): string {
   const d = new Date(startDate + 'T00:00:00Z');
   const end = new Date(d);

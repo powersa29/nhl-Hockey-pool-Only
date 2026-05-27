@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import Link from 'next/link';
 import type { Player, Round } from '@/lib/golf-db';
-import { courseHandicap9, netScore, weekLabel } from '@/lib/golf-scoring';
+import { courseHandicap9, netScore, weekLabel, scoreDifferential9, calcHandicapIndex } from '@/lib/golf-scoring';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -57,6 +57,38 @@ export default function PlayerPage({ params }: Props) {
     load();
   }
 
+  // ── Handicap tracker computation ─────────────────────────────────────────
+  const { diffRows, hcpCalc, usedIds } = useMemo(() => {
+    const rows = rounds.map(r => {
+      const tee = r.golf_tees;
+      const course = r.golf_courses;
+      if (!tee) return null;
+      const cr9 = Number(tee.course_rating);
+      if (isNaN(cr9)) return null;
+      return {
+        id: r.id,
+        date: r.played_at,
+        course: course?.name ?? '—',
+        gross: r.gross_score,
+        tee: tee.tee_name,
+        slope: tee.slope_rating,
+        differential: scoreDifferential9(r.gross_score, cr9, tee.slope_rating),
+      };
+    }).filter((x): x is NonNullable<typeof x> => x !== null);
+
+    const calc = calcHandicapIndex(rows.map(r => r.differential));
+
+    // Identify which round IDs contribute (best N of last 20)
+    const used = new Set<number>();
+    if (calc) {
+      const working = rows.slice(0, 20);
+      const sorted = [...working].sort((a, b) => a.differential - b.differential);
+      sorted.slice(0, calc.diffsUsed).forEach(r => used.add(r.id));
+    }
+
+    return { diffRows: rows, hcpCalc: calc, usedIds: used };
+  }, [rounds]);
+
   if (!player) {
     return (
       <div className="empty-state">
@@ -81,6 +113,8 @@ export default function PlayerPage({ params }: Props) {
   }
 
   const weeks = Array.from(byLeague.values());
+
+  const hiDelta = hcpCalc ? hcpCalc.calculatedHI - player.handicap_index : null;
 
   return (
     <div>
@@ -135,8 +169,109 @@ export default function PlayerPage({ params }: Props) {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <Link href="/record"><button className="btn dark">+ Record Round</button></Link>
-          <Link href="/golf"><button className="btn ghost">Standings</button></Link>
+          <Link href="/"><button className="btn ghost">Standings</button></Link>
         </div>
+      </div>
+
+      {/* Handicap Tracker */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-header">
+          <h3 style={{ fontSize: 16, margin: 0 }}>Handicap Tracker</h3>
+          <span className="tag gray">WHS formula</span>
+        </div>
+
+        {diffRows.length === 0 ? (
+          <div className="empty-state" style={{ padding: '24px 0' }}>
+            Record rounds here to start tracking your handicap trend.
+          </div>
+        ) : (
+          <>
+            {/* Summary pills */}
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+              <div className="stat-pill">
+                <div className="k">{player.handicap_index.toFixed(1)}</div>
+                <div className="l">Entered Index</div>
+              </div>
+              {hcpCalc && (
+                <div className="stat-pill">
+                  <div className="k" style={{
+                    color: hiDelta !== null && hiDelta < -0.05 ? 'var(--green)'
+                         : hiDelta !== null && hiDelta > 0.05 ? 'var(--red, #dc2626)'
+                         : 'inherit'
+                  }}>
+                    {hcpCalc.calculatedHI.toFixed(1)}
+                    {hiDelta !== null && Math.abs(hiDelta) > 0.05
+                      ? (hiDelta < 0 ? ' ↓' : ' ↑')
+                      : ''}
+                  </div>
+                  <div className="l">Calculated Index</div>
+                </div>
+              )}
+              <div className="stat-pill">
+                <div className="k">{diffRows.length}</div>
+                <div className="l">Rounds in system</div>
+              </div>
+            </div>
+
+            {hcpCalc && (
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                Using best {hcpCalc.diffsUsed} differential{hcpCalc.diffsUsed !== 1 ? 's' : ''} of {Math.min(hcpCalc.totalRounds, 20)} rounds · ×0.96 multiplier (WHS)
+                {hiDelta !== null && Math.abs(hiDelta) > 0.05 && (
+                  <> · {hiDelta < 0
+                    ? <span style={{ color: 'var(--green)' }}>Playing better than your entered index</span>
+                    : <span>Playing slightly above your entered index</span>
+                  }</>
+                )}
+              </p>
+            )}
+
+            {/* Per-round differential table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--line)' }}>
+                    <th style={thStyle}>Date</th>
+                    <th style={thStyle}>Course</th>
+                    <th style={thStyle}>Tees</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Gross</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Differential</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Used</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {diffRows.map(row => {
+                    const used = usedIds.has(row.id);
+                    return (
+                      <tr key={row.id} style={{
+                        borderBottom: '1px solid var(--line)',
+                        background: used
+                          ? 'color-mix(in oklab, var(--green) 7%, transparent)'
+                          : 'transparent',
+                      }}>
+                        <td style={tdStyle}>{new Date(row.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                        <td style={tdStyle}>{row.course}</td>
+                        <td style={tdStyle}>{row.tee}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right' }}>{row.gross}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: used ? 700 : 400, color: used ? 'var(--green-dark)' : 'inherit' }}>
+                          {row.differential.toFixed(1)}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: 'center' }}>
+                          {used ? <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓</span> : <span style={{ color: 'var(--muted)' }}>—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 12, lineHeight: 1.6 }}>
+              Differential = (Gross − 9-hole Course Rating) × 113 ÷ Slope × 2 &nbsp;·&nbsp;
+              Calculated Index = avg of best differentials × 0.96, truncated to 1 decimal.&nbsp;
+              For an official USGA Handicap Index, visit <strong>GHIN.com</strong>.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Rounds by week */}
@@ -164,7 +299,7 @@ export default function PlayerPage({ params }: Props) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {week.rounds.map((r, i) => {
+                {week.rounds.map((r) => {
                   const slope = (r as Round & { golf_tees?: { slope_rating: number; tee_name: string } }).golf_tees?.slope_rating ?? 113;
                   const teeName = (r as Round & { golf_tees?: { tee_name: string } }).golf_tees?.tee_name ?? '';
                   const net = netScore(r.gross_score, player.handicap_index, slope);
@@ -209,3 +344,11 @@ export default function PlayerPage({ params }: Props) {
     </div>
   );
 }
+
+const thStyle: React.CSSProperties = {
+  textAlign: 'left', padding: '6px 10px',
+  color: 'var(--muted)', fontWeight: 600, fontSize: 12,
+};
+const tdStyle: React.CSSProperties = {
+  padding: '8px 10px',
+};
