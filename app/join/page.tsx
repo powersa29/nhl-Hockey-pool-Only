@@ -18,7 +18,7 @@ export default function JoinPage() {
     if (isNaN(hcp) || hcp < 0 || hcp > 54) { setError('Handicap index must be 0.0 – 54.0'); return; }
 
     setSubmitting(true);
-    const res = await fetch('/api/golf/players', {
+    const res = await fetch('/api/players', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim(), handicap_index: hcp }),
@@ -37,9 +37,9 @@ export default function JoinPage() {
           ✅ Welcome, {done.name}! You&apos;re in the league.
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/golf/record"><button className="btn">Record your first round →</button></Link>
+          <Link href="/record"><button className="btn">Record your first round →</button></Link>
           <Link href="/golf"><button className="btn ghost">See Standings</button></Link>
-          <Link href={`/golf/player/${done.id}`}><button className="btn ghost">My Profile</button></Link>
+          <Link href={`/player/${done.id}`}><button className="btn ghost">My Profile</button></Link>
         </div>
       </div>
     );

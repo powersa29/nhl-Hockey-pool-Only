@@ -23,7 +23,7 @@ export default function GolfStandingsPage({ currentLeague, allLeagues, initialSt
     if (id === selectedLeagueId) return;
     setLoading(true);
     setSelectedLeagueId(id);
-    const res = await fetch(`/api/golf/standings?leagueId=${id}`);
+    const res = await fetch(`/api/standings?leagueId=${id}`);
     const data = await res.json();
     setStandings(data.standings);
     setLabel(data.label);
@@ -49,8 +49,8 @@ export default function GolfStandingsPage({ currentLeague, allLeagues, initialSt
           {leader && <div className="stat-pill"><div className="k">{leader.bestNet}</div><div className="l">Leading net score</div></div>}
         </div>
         <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/golf/record"><button className="btn">+ Record a Round</button></Link>
-          <Link href="/golf/join"><button className="btn ghost">Join the League</button></Link>
+          <Link href="/record"><button className="btn">+ Record a Round</button></Link>
+          <Link href="/join"><button className="btn ghost">Join the League</button></Link>
         </div>
       </section>
 
@@ -75,7 +75,7 @@ export default function GolfStandingsPage({ currentLeague, allLeagues, initialSt
           <div className="empty-state">Loading…</div>
         ) : standings.length === 0 ? (
           <div className="empty-state">
-            No players yet — <Link href="/golf/join" style={{ color: 'var(--green)' }}>join the league</Link> to get started.
+            No players yet — <Link href="/join" style={{ color: 'var(--green)' }}>join the league</Link> to get started.
           </div>
         ) : (
           <div className="lb">
@@ -95,7 +95,7 @@ export default function GolfStandingsPage({ currentLeague, allLeagues, initialSt
                 </div>
                 <div className="td">
                   <div className="name-cell">
-                    <Link href={`/golf/player/${row.player.id}`} className="n" style={{ color: 'inherit' }}>
+                    <Link href={`/player/${row.player.id}`} className="n" style={{ color: 'inherit' }}>
                       {row.player.name}
                     </Link>
                     {row.rounds.length > 0 && row.rounds[0].golf_courses && (
@@ -117,7 +117,7 @@ export default function GolfStandingsPage({ currentLeague, allLeagues, initialSt
                   </span>
                 </div>
                 <div className="td col-course">
-                  <Link href={`/golf/player/${row.player.id}`}>
+                  <Link href={`/player/${row.player.id}`}>
                     <button className="btn ghost" style={{ padding: '6px 12px', fontSize: 12 }}>View</button>
                   </Link>
                 </div>

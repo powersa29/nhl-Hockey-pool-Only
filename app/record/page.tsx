@@ -25,8 +25,8 @@ export default function RecordPage() {
   const [roundsThisWeek, setRoundsThisWeek] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch('/api/golf/players').then(r => r.json()).then(setPlayers);
-    fetch('/api/golf/courses').then(r => r.json()).then(setCourses);
+    fetch('/api/players').then(r => r.json()).then(setPlayers);
+    fetch('/api/courses').then(r => r.json()).then(setCourses);
   }, []);
 
   const player = players.find(p => p.id === Number(playerId));
@@ -46,7 +46,7 @@ export default function RecordPage() {
 
   useEffect(() => {
     if (!playerId) { setRoundsThisWeek(null); return; }
-    fetch(`/api/golf/rounds/count?playerId=${playerId}`)
+    fetch(`/api/rounds/count?playerId=${playerId}`)
       .then(r => r.json())
       .then(d => setRoundsThisWeek(d.count));
   }, [playerId]);
@@ -58,7 +58,7 @@ export default function RecordPage() {
       setError('Please fill in all fields.'); return;
     }
     setSubmitting(true);
-    const res = await fetch('/api/golf/rounds', {
+    const res = await fetch('/api/rounds', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -92,7 +92,7 @@ export default function RecordPage() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn" onClick={reset}>Record Another Round</button>
           <Link href="/golf"><button className="btn ghost">See Standings</button></Link>
-          {player && <Link href={`/golf/player/${player.id}`}><button className="btn ghost">My Rounds</button></Link>}
+          {player && <Link href={`/player/${player.id}`}><button className="btn ghost">My Rounds</button></Link>}
         </div>
       </div>
     );
@@ -102,7 +102,7 @@ export default function RecordPage() {
     <div>
       <div className="section-header">
         <h2>Record a Round</h2>
-        <Link href="/golf/join"><button className="btn ghost" style={{ fontSize: 13 }}>New player? Join first →</button></Link>
+        <Link href="/join"><button className="btn ghost" style={{ fontSize: 13 }}>New player? Join first →</button></Link>
       </div>
 
       <form onSubmit={submit} className="form-card" style={{ maxWidth: 640 }}>

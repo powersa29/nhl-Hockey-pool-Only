@@ -1,15 +1,27 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './golf.css';
+import GolfHeader from '@/components/GolfHeader';
 
 export const metadata: Metadata = {
-  title: 'NHL 2026 Playoff Pool',
-  description: 'Build your 16-team roster. Points roll in live from every playoff game.',
+  title: 'Golf League',
+  description: '9-hole weekly stroke play. Handicap-adjusted net scoring.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        <div className="golf-app">
+          <div className="golf-inner">
+            <GolfHeader />
+            {children}
+            <footer style={{ marginTop: 48, paddingTop: 20, borderTop: '2px dashed var(--line)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
+              Golf League · 9-hole weekly stroke play · Handicap-adjusted net scoring
+            </footer>
+          </div>
+        </div>
+      </body>
     </html>
   );
 }

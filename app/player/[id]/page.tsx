@@ -22,8 +22,8 @@ export default function PlayerPage({ params }: Props) {
 
   async function load() {
     const [pRes, rRes] = await Promise.all([
-      fetch(`/api/golf/players`),
-      fetch(`/api/golf/rounds/player?playerId=${id}`),
+      fetch(`/api/players`),
+      fetch(`/api/rounds/player?playerId=${id}`),
     ]);
     const players: Player[] = await pRes.json();
     const p = players.find(x => x.id === Number(id));
@@ -40,7 +40,7 @@ export default function PlayerPage({ params }: Props) {
     const v = parseFloat(hcpInput);
     if (isNaN(v) || v < 0 || v > 54) { setHcpError('Must be 0.0 – 54.0'); return; }
     setSaving(true);
-    const res = await fetch(`/api/golf/players/${id}`, {
+    const res = await fetch(`/api/players/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ handicap_index: v }),
@@ -134,7 +134,7 @@ export default function PlayerPage({ params }: Props) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/golf/record"><button className="btn dark">+ Record Round</button></Link>
+          <Link href="/record"><button className="btn dark">+ Record Round</button></Link>
           <Link href="/golf"><button className="btn ghost">Standings</button></Link>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function PlayerPage({ params }: Props) {
       {weeks.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)' }}>
           No rounds recorded yet.{' '}
-          <Link href="/golf/record" style={{ color: 'var(--green)' }}>Record your first round →</Link>
+          <Link href="/record" style={{ color: 'var(--green)' }}>Record your first round →</Link>
         </div>
       ) : (
         weeks.map(week => {
