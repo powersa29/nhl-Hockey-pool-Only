@@ -20,6 +20,7 @@ export default function GolfHeader() {
     const stored = localStorage.getItem('golf-theme');
     if (stored === 'dark') {
       setDark(true);
+      document.documentElement.classList.add('dark');
       document.querySelector('.golf-app')?.classList.add('dark');
     }
   }, []);
@@ -27,6 +28,7 @@ export default function GolfHeader() {
   function toggleTheme() {
     const next = !dark;
     setDark(next);
+    document.documentElement.classList.toggle('dark', next);
     document.querySelector('.golf-app')?.classList.toggle('dark', next);
     localStorage.setItem('golf-theme', next ? 'dark' : 'light');
   }

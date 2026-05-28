@@ -4,7 +4,7 @@
 .golf-app .nav, .golf-app .rule-card, .golf-app .round-tile,
 .golf-app .course-row, .golf-app .tee-btn, .golf-app .state-tab,
 .golf-app .week-pill, .golf-app .input, .golf-app .select,
-.golf-app .brand-mark {
+.golf-app .brand-mark, .golf-app .score-card {
   transition: background-color 0.25s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.25s ease;
 }
 
@@ -351,6 +351,25 @@
 }
 .golf-app .rule-card h3 { margin: 6px 0 8px; font-size: 17px; }
 .golf-app .rule-card p  { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+
+/* ── Scoring grid (Rules page) ── */
+.golf-app .scoring-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 10px;
+}
+.golf-app .score-card {
+  background: var(--chip); border: 1.5px solid var(--line);
+  border-radius: var(--radius); padding: 14px 10px; text-align: center;
+}
+.golf-app .score-card .n {
+  font-family: var(--display); font-size: 22px; font-weight: 800;
+  color: var(--green); line-height: 1;
+}
+.golf-app .score-card .l {
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
+}
 
 /* ── Misc ── */
 .golf-app .empty-state { padding: 40px 20px; text-align: center; color: var(--muted); font-style: italic; }
