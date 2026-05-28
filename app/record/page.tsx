@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Player, Course, Tee } from '@/lib/golf-db';
 import { courseHandicap9, netScore } from '@/lib/golf-scoring';
 import AddCourseModal from '@/components/AddCourseModal';
+import HotdogCelebration from '@/components/HotdogCelebration';
 
 type CourseWithTees = Course & { tees: Tee[] };
 
@@ -21,6 +22,7 @@ export default function RecordPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
   const [error, setError] = useState('');
   const [roundsThisWeek, setRoundsThisWeek] = useState<number | null>(null);
 
@@ -77,6 +79,7 @@ export default function RecordPage() {
     setSubmitting(false);
     if (!res.ok) { setError(data.error ?? 'Something went wrong'); return; }
     setDone(true);
+    setCelebrate(true);
   }
 
   function reset() {
@@ -98,8 +101,9 @@ export default function RecordPage() {
   if (done) {
     return (
       <div style={{ maxWidth: 500 }}>
+        {celebrate && <HotdogCelebration onDone={() => setCelebrate(false)} />}
         <div className="success-banner" style={{ marginBottom: 20 }}>
-          ✅ Round recorded! Net score: <strong>{previewNet}</strong>
+          🌭 Round recorded! Net score: <strong>{previewNet}</strong>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn" onClick={reset}>Record Another Round</button>
