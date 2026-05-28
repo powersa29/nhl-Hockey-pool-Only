@@ -309,7 +309,12 @@
 .golf-app .course-row .cr-loc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 /* ── State Tabs ── */
-.golf-app .state-tabs  { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.golf-app .state-tabs {
+  display: flex; gap: 6px; margin-bottom: 16px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.golf-app .state-tabs::-webkit-scrollbar { display: none; }
 .golf-app .state-tab {
   padding: 8px 16px; border-radius: var(--radius-pill);
   background: var(--chip); border: 1.5px solid var(--line);
@@ -319,7 +324,12 @@
 .golf-app .state-tab.active { background: var(--green); color: white; border-color: var(--green); }
 
 /* ── Week Selector ── */
-.golf-app .week-selector { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.golf-app .week-selector {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 20px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.golf-app .week-selector::-webkit-scrollbar { display: none; }
 .golf-app .week-pill {
   padding: 8px 16px; border-radius: var(--radius-pill);
   background: var(--chip); border: 1.5px solid var(--line);
@@ -365,3 +375,75 @@
 .golf-app .tag.green { background: var(--green); color: white; }
 .golf-app .tag.gold  { background: var(--gold); color: white; }
 .golf-app .tag.gray  { background: var(--ice-2); color: var(--muted); border: 1px solid var(--line); }
+
+/* ── Tee inputs (AddCourseModal) ── */
+.golf-app .tee-inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 68px 78px 78px;
+  gap: 8px; align-items: end;
+}
+
+/* ═══════════════════════════════════════════
+   MOBILE — ≤ 640px
+   ═══════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  /* Header: stack brand on top, nav row below */
+  .golf-app .header { flex-direction: column; align-items: stretch; gap: 10px; }
+  .golf-app .header > div:last-child {
+    display: flex; align-items: center; gap: 8px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .golf-app .header > div:last-child::-webkit-scrollbar { display: none; }
+  .golf-app .nav {
+    flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; padding: 4px; flex-wrap: nowrap;
+  }
+  .golf-app .nav::-webkit-scrollbar { display: none; }
+  .golf-app .nav a { padding: 7px 11px; font-size: 12px; white-space: nowrap; }
+
+  /* Brand: a touch smaller */
+  .golf-app .brand-mark { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
+  .golf-app .brand-name  { font-size: 16px; }
+
+  /* Hero: reduce enormous h1 */
+  .golf-app h1  { font-size: 34px; line-height: 1; }
+  .golf-app h2  { font-size: 24px; }
+  .golf-app .hero { padding: 20px 18px; }
+  .golf-app .hero::before { font-size: 80px; opacity: 0.04; right: 12px; }
+
+  /* Cards & forms */
+  .golf-app .card      { padding: 16px; }
+  .golf-app .form-card { padding: 20px 16px; }
+
+  /* Tee selector: 2-up instead of 3-up */
+  .golf-app .tee-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Tee inputs in Add Course modal: 2×2 */
+  .golf-app .tee-inputs-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Round tiles: let scores row fill width */
+  .golf-app .round-tile { align-items: flex-start; }
+  .golf-app .round-tile .rt-scores { flex: 1; width: 100%; justify-content: flex-start; }
+
+  /* Leaderboard: tighter cells */
+  .golf-app .lb .th,
+  .golf-app .lb .td { padding: 10px 10px; font-size: 12px; }
+
+  /* Player profile: make action buttons wrap */
+  .golf-app .player-actions { flex-wrap: wrap; }
+
+  /* Admin row wrapping */
+  .golf-app .admin-row { flex-direction: column; align-items: flex-start !important; }
+}
+
+/* ═══════════════════════════════════════════
+   TINY — ≤ 400px
+   ═══════════════════════════════════════════ */
+@media (max-width: 400px) {
+  .golf-app h1 { font-size: 28px; }
+  .golf-app .tee-grid { grid-template-columns: 1fr; }
+  .golf-app .brand-name { font-size: 14px; }
+  .golf-app .hero-tag { font-size: 10px; }
+  .golf-app .stat-pill .k { font-size: 18px; }
+}

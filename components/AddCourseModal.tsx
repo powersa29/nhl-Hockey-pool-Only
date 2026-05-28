@@ -212,7 +212,7 @@ export default function AddCourseModal({ onClose, onAdded, existingCourses = [] 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {fTees.map((tee, i) => (
                 <div key={i} style={{ background: 'var(--ice-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '12px 14px 10px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 68px 78px 78px', gap: 8, alignItems: 'end' }}>
+                  <div className="tee-inputs-grid">
                     <label style={labelStyle}>
                       Tee Name
                       <input className="input" type="text" placeholder="White" value={tee.tee_name}

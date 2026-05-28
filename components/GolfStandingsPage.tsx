@@ -66,8 +66,8 @@ export default function GolfStandingsPage({
           {topSeason && <div className="stat-pill"><div className="k">{topSeason.points}</div><div className="l">Season leader pts</div></div>}
         </div>
         <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/record"><button className="btn">+ Record a Round</button></Link>
-          <Link href="/join"><button className="btn ghost">Join the League</button></Link>
+          <Link href="/record"><button className="btn" style={{ flex: '1 1 auto' }}>+ Record a Round</button></Link>
+          <Link href="/join" style={{ flex: '1 1 auto' }}><button className="btn ghost" style={{ width: '100%' }}>Join the League</button></Link>
         </div>
       </section>
 
