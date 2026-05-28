@@ -13,7 +13,76 @@ interface Round {
   golf_leagues?: { name: string; start_date: string };
 }
 
+function LoginGate({ onAuth }: { onAuth: () => void }) {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [error, setError] = useState('');
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (user.trim() === 'admin' && pass === 'Glizzy') {
+      sessionStorage.setItem('golf-admin', '1');
+      onAuth();
+    } else {
+      setError('Incorrect username or password.');
+      setPass('');
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 60 }}>
+      <div className="form-card" style={{ maxWidth: 360, width: '100%' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>🔒</div>
+          <h2 style={{ margin: 0, fontSize: 22 }}>Admin Login</h2>
+          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--muted)' }}>
+            Glizzy Golf League · Admin Area
+          </p>
+        </div>
+
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="form-row" style={{ marginBottom: 0 }}>
+            <label>Username</label>
+            <input
+              className="input"
+              type="text"
+              autoComplete="username"
+              value={user}
+              onChange={e => { setUser(e.target.value); setError(''); }}
+              placeholder="admin"
+              style={{ marginTop: 6 }}
+            />
+          </div>
+          <div className="form-row" style={{ marginBottom: 0 }}>
+            <label>Password</label>
+            <input
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              value={pass}
+              onChange={e => { setPass(e.target.value); setError(''); }}
+              placeholder="••••••"
+              style={{ marginTop: 6 }}
+            />
+          </div>
+
+          {error && (
+            <div className="error-banner" style={{ marginTop: 0 }}>⚠️ {error}</div>
+          )}
+
+          <button type="submit" className="btn" style={{ marginTop: 6 }}>
+            Sign In →
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
+  const [authed, setAuthed] = useState(false);
+  const [checked, setChecked] = useState(false);
+
   const [rounds, setRounds] = useState<Round[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -21,10 +90,23 @@ export default function AdminPage() {
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
+    if (sessionStorage.getItem('golf-admin') === '1') setAuthed(true);
+    setChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (!authed) return;
     fetch('/api/admin/rounds')
       .then(r => r.json())
       .then(data => { setRounds(data); setLoading(false); });
-  }, []);
+  }, [authed]);
+
+  function logout() {
+    sessionStorage.removeItem('golf-admin');
+    setAuthed(false);
+    setRounds([]);
+    setLoading(true);
+  }
 
   async function handleDelete(id: number) {
     setDeleting(id);
@@ -34,6 +116,9 @@ export default function AdminPage() {
     setDeleting(null);
   }
 
+  if (!checked) return null;
+  if (!authed) return <LoginGate onAuth={() => setAuthed(true)} />;
+
   const q = search.toLowerCase();
   const filtered = rounds.filter(r =>
     q === '' ||
@@ -42,7 +127,6 @@ export default function AdminPage() {
     r.golf_leagues?.name.toLowerCase().includes(q)
   );
 
-  // Group by week
   const grouped: Record<string, Round[]> = {};
   for (const r of filtered) {
     const week = r.golf_leagues?.name ?? 'Unknown Week';
@@ -53,8 +137,13 @@ export default function AdminPage() {
   return (
     <div>
       <div className="section-header">
-        <h2>Admin — All Rounds</h2>
-        <span className="tag gray">{rounds.length} total</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h2>Admin — All Rounds</h2>
+          <span className="tag gray">{rounds.length} total</span>
+        </div>
+        <button className="btn ghost" style={{ fontSize: 12, padding: '6px 14px' }} onClick={logout}>
+          Sign Out
+        </button>
       </div>
 
       <input
@@ -66,11 +155,11 @@ export default function AdminPage() {
           width: '100%', padding: '10px 14px', marginBottom: 20,
           border: '1.5px solid var(--line)', borderRadius: 'var(--radius)',
           background: 'var(--ice-2)', color: 'var(--ink)', fontSize: 14, outline: 'none',
+          boxSizing: 'border-box',
         }}
       />
 
       {loading && <div className="empty-state">Loading…</div>}
-
       {!loading && filtered.length === 0 && (
         <div className="empty-state">No rounds found.</div>
       )}
@@ -113,8 +202,8 @@ export default function AdminPage() {
                     {isConfirming ? (
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button
-                          className="btn"
-                          style={{ background: 'var(--red, #dc2626)', fontSize: 12, padding: '6px 12px' }}
+                          className="btn danger"
+                          style={{ fontSize: 12, padding: '6px 12px' }}
                           onClick={() => handleDelete(r.id)}
                           disabled={deleting === r.id}
                         >
@@ -131,7 +220,7 @@ export default function AdminPage() {
                     ) : (
                       <button
                         className="btn ghost"
-                        style={{ fontSize: 12, padding: '6px 12px', color: 'var(--red, #dc2626)' }}
+                        style={{ fontSize: 12, padding: '6px 12px', color: 'var(--red, #dc2626)', borderColor: 'var(--red, #dc2626)' }}
                         onClick={() => setConfirmId(r.id)}
                       >
                         Delete
