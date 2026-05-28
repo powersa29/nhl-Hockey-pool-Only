@@ -9,6 +9,8 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+const ADMIN_TOKEN = 'GlizzyAdmin2026';
+
 export default function PlayerPage({ params }: Props) {
   const { id } = use(params);
 
@@ -18,6 +20,15 @@ export default function PlayerPage({ params }: Props) {
   const [hcpInput, setHcpInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [hcpError, setHcpError] = useState('');
+
+  // Admin delete state
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isAdminAuthed, setIsAdminAuthed] = useState(false);
+  const [authUser, setAuthUser] = useState('');
+  const [authPass, setAuthPass] = useState('');
+  const [authError, setAuthError] = useState('');
 
   async function load() {
     const [pRes, rRes] = await Promise.all([
@@ -33,6 +44,44 @@ export default function PlayerPage({ params }: Props) {
   }
 
   useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('golf-admin') === '1') setIsAdminAuthed(true);
+  }, []);
+
+  function handleRemoveClick(roundId: number) {
+    setPendingDeleteId(roundId);
+    if (isAdminAuthed) {
+      execDelete(roundId);
+    } else {
+      setShowAuthModal(true);
+    }
+  }
+
+  async function execDelete(roundId: number) {
+    setDeletingId(roundId);
+    await fetch(`/api/admin/rounds?id=${roundId}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-token': ADMIN_TOKEN },
+    });
+    setDeletingId(null);
+    setPendingDeleteId(null);
+    load();
+  }
+
+  function handleAuthSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (authUser.trim() === 'admin' && authPass === 'Glizzy') {
+      sessionStorage.setItem('golf-admin', '1');
+      setIsAdminAuthed(true);
+      setShowAuthModal(false);
+      setAuthUser(''); setAuthPass(''); setAuthError('');
+      if (pendingDeleteId !== null) execDelete(pendingDeleteId);
+    } else {
+      setAuthError('Incorrect username or password.');
+      setAuthPass('');
+    }
+  }
 
   async function saveHandicap() {
     setHcpError('');
@@ -316,6 +365,14 @@ export default function PlayerPage({ params }: Props) {
                           <div className="v">{net}</div>
                           <div className="l">Net</div>
                         </div>
+                        <button
+                          className="btn ghost"
+                          style={{ padding: '6px 10px', fontSize: 11, color: 'var(--red,#dc2626)', borderColor: 'var(--red,#dc2626)' }}
+                          onClick={() => handleRemoveClick(r.id)}
+                          disabled={deletingId === r.id}
+                        >
+                          {deletingId === r.id ? '…' : 'Remove'}
+                        </button>
                       </div>
                     </div>
                   );
@@ -324,6 +381,39 @@ export default function PlayerPage({ params }: Props) {
             </div>
           );
         })
+      )}
+
+      {/* Admin login modal for round deletion */}
+      {showAuthModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowAuthModal(false); setPendingDeleteId(null); } }}
+        >
+          <div style={{ background: 'var(--paper)', borderRadius: 'var(--radius-lg)', padding: '28px', maxWidth: 360, width: '100%', boxShadow: 'var(--shadow)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 32, marginBottom: 6 }}>🔒</div>
+              <h3 style={{ margin: 0, fontSize: 18 }}>Admin required</h3>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--muted)' }}>Sign in to delete this round.</p>
+            </div>
+            <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input
+                className="input" type="text" placeholder="Username"
+                value={authUser} onChange={e => { setAuthUser(e.target.value); setAuthError(''); }}
+                autoComplete="username" autoFocus
+              />
+              <input
+                className="input" type="password" placeholder="Password"
+                value={authPass} onChange={e => { setAuthPass(e.target.value); setAuthError(''); }}
+                autoComplete="current-password"
+              />
+              {authError && <div className="error-banner" style={{ marginTop: 0 }}>⚠️ {authError}</div>}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+                <button type="button" className="btn ghost" onClick={() => { setShowAuthModal(false); setPendingDeleteId(null); }}>Cancel</button>
+                <button type="submit" className="btn danger">Delete Round</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
