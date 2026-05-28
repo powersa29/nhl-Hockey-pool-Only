@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { netScore } from '@/lib/golf-scoring';
 
+const ADMIN_TOKEN = 'GlizzyAdmin2026';
+
 interface Round {
   id: number;
   gross_score: number;
@@ -11,6 +13,13 @@ interface Round {
   golf_courses?: { name: string; city: string; state: string };
   golf_tees?: { tee_name: string; slope_rating: number; course_rating: number };
   golf_leagues?: { name: string; start_date: string };
+}
+
+function adminFetch(url: string, options: RequestInit = {}) {
+  return fetch(url, {
+    ...options,
+    headers: { ...(options.headers ?? {}), 'x-admin-token': ADMIN_TOKEN },
+  });
 }
 
 function LoginGate({ onAuth }: { onAuth: () => void }) {
@@ -90,16 +99,34 @@ export default function AdminPage() {
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem('golf-admin') === '1') setAuthed(true);
-    setChecked(true);
+    // Verify session token is still valid against the server before granting access
+    if (sessionStorage.getItem('golf-admin') === '1') {
+      adminFetch('/api/admin/rounds')
+        .then(r => {
+          if (r.ok) {
+            setAuthed(true);
+            return r.json();
+          }
+          sessionStorage.removeItem('golf-admin');
+          return null;
+        })
+        .then(data => {
+          if (data) { setRounds(data); setLoading(false); }
+          setChecked(true);
+        })
+        .catch(() => { sessionStorage.removeItem('golf-admin'); setChecked(true); });
+    } else {
+      setChecked(true);
+    }
   }, []);
 
-  useEffect(() => {
-    if (!authed) return;
-    fetch('/api/admin/rounds')
+  function handleAuth() {
+    setAuthed(true);
+    setLoading(true);
+    adminFetch('/api/admin/rounds')
       .then(r => r.json())
       .then(data => { setRounds(data); setLoading(false); });
-  }, [authed]);
+  }
 
   function logout() {
     sessionStorage.removeItem('golf-admin');
@@ -110,14 +137,16 @@ export default function AdminPage() {
 
   async function handleDelete(id: number) {
     setDeleting(id);
-    await fetch(`/api/admin/rounds?id=${id}`, { method: 'DELETE' });
-    setRounds(prev => prev.filter(r => r.id !== id));
+    const res = await adminFetch(`/api/admin/rounds?id=${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setRounds(prev => prev.filter(r => r.id !== id));
+    }
     setConfirmId(null);
     setDeleting(null);
   }
 
   if (!checked) return null;
-  if (!authed) return <LoginGate onAuth={() => setAuthed(true)} />;
+  if (!authed) return <LoginGate onAuth={handleAuth} />;
 
   const q = search.toLowerCase();
   const filtered = rounds.filter(r =>
