@@ -18,7 +18,6 @@ export default function PlayerPage({ params }: Props) {
   const [hcpInput, setHcpInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [hcpError, setHcpError] = useState('');
-  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   async function load() {
     const [pRes, rRes] = await Promise.all([
@@ -48,13 +47,6 @@ export default function PlayerPage({ params }: Props) {
     setSaving(false);
     if (res.ok) { const p = await res.json(); setPlayer(p); setEditHcp(false); }
     else { setHcpError('Failed to save'); }
-  }
-
-  async function removeRound(roundId: number) {
-    setDeleteId(roundId);
-    await fetch(`/api/rounds?id=${roundId}`, { method: 'DELETE' });
-    setDeleteId(null);
-    load();
   }
 
   // ── Handicap tracker computation ─────────────────────────────────────────
@@ -324,14 +316,6 @@ export default function PlayerPage({ params }: Props) {
                           <div className="v">{net}</div>
                           <div className="l">Net</div>
                         </div>
-                        <button
-                          className="btn ghost"
-                          style={{ padding: '6px 10px', fontSize: 11, color: 'var(--muted)', borderColor: 'var(--line)' }}
-                          onClick={() => removeRound(r.id)}
-                          disabled={deleteId === r.id}
-                        >
-                          {deleteId === r.id ? '…' : 'Remove'}
-                        </button>
                       </div>
                     </div>
                   );

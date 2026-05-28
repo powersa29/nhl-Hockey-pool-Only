@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { insertRound, deleteRound, getOrCreateCurrentLeague, countPlayerRoundsThisWeek, getRoundsForLeague } from '@/lib/golf-db';
 import { toDateStr, weekBounds } from '@/lib/golf-scoring';
 
+const ADMIN_TOKEN = 'GlizzyAdmin2026';
+
 export async function GET(req: NextRequest) {
   const leagueId = Number(req.nextUrl.searchParams.get('leagueId'));
   if (!leagueId) return NextResponse.json({ error: 'missing leagueId' }, { status: 400 });
@@ -36,6 +38,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (req.headers.get('x-admin-token') !== ADMIN_TOKEN)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const id = Number(req.nextUrl.searchParams.get('id'));
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 });
   await deleteRound(id);
