@@ -402,6 +402,17 @@
   gap: 8px; align-items: end;
 }
 
+/* ── Live page grid ── */
+.golf-app .live-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 640px) {
+  .golf-app .live-grid { grid-template-columns: 1fr; }
+}
+
 /* ═══════════════════════════════════════════
    MOBILE — ≤ 640px
    ═══════════════════════════════════════════ */

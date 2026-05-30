@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import type { Course, Tee } from '@/lib/golf-db';
 import AddCourseModal from '@/components/AddCourseModal';
+
+const GolfMap = dynamic(() => import('@/components/GolfMap'), { ssr: false });
 
 type CourseWithTees = Course & { tees: Tee[] };
 
@@ -16,6 +19,25 @@ export default function CoursesPage() {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [coordsMap, setCoordsMap] = useState<Record<number, { lat: number; lng: number }>>({});
+  const [geocoding, setGeocoding] = useState<Set<number>>(new Set());
+
+  async function ensureCoords(course: CourseWithTees) {
+    if (course.lat && course.lng) {
+      setCoordsMap(prev => ({ ...prev, [course.id]: { lat: course.lat!, lng: course.lng! } }));
+      return;
+    }
+    if (geocoding.has(course.id)) return;
+    setGeocoding(prev => new Set(prev).add(course.id));
+    const res = await fetch(
+      `/api/courses/geocode?courseId=${course.id}&name=${encodeURIComponent(course.name)}&city=${encodeURIComponent(course.city)}&state=${encodeURIComponent(course.state)}`
+    );
+    if (res.ok) {
+      const { lat, lng } = await res.json();
+      setCoordsMap(prev => ({ ...prev, [course.id]: { lat, lng } }));
+    }
+    setGeocoding(prev => { const s = new Set(prev); s.delete(course.id); return s; });
+  }
 
   async function loadCourses() {
     const data = await fetch('/api/courses').then(r => r.json());
@@ -98,7 +120,11 @@ export default function CoursesPage() {
               <div key={course.id}>
                 <div
                   className={`course-row ${expandedId === course.id ? 'selected' : ''}`}
-                  onClick={() => setExpandedId(expandedId === course.id ? null : course.id)}
+                  onClick={() => {
+                    const next = expandedId === course.id ? null : course.id;
+                    setExpandedId(next);
+                    if (next) ensureCoords(course);
+                  }}
                 >
                   <div>
                     <div className="cr-name">{course.name}</div>
@@ -138,6 +164,21 @@ export default function CoursesPage() {
                     <div style={{ marginTop: 12, fontSize: 11, color: 'var(--muted)' }}>
                       Ratings are for 9-hole play. Course handicap = round(HI × Slope ÷ 113 ÷ 2).
                     </div>
+
+                    {/* Course map */}
+                    {coordsMap[course.id] ? (
+                      <div style={{ marginTop: 14 }}>
+                        <GolfMap
+                          center={{ ...coordsMap[course.id], label: course.name }}
+                          height={280}
+                          zoom={16}
+                        />
+                      </div>
+                    ) : geocoding.has(course.id) ? (
+                      <div style={{ marginTop: 14, padding: '16px', textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
+                        Loading map…
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>
