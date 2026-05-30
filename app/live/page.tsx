@@ -564,7 +564,7 @@ export default function LivePage() {
                     height: 60, borderRadius: 'var(--radius)',
                     border: '2px solid var(--line)',
                     background: btnBg(btn.n, currentHolePar, btn.isMore),
-                    color: btn.isMore ? 'var(--ink)' : 'white',
+                    color: (btn.isMore || !currentHolePar) ? 'var(--ink)' : 'white',
                     cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
