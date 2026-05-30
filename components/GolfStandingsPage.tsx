@@ -67,7 +67,7 @@ export default function GolfStandingsPage({
           {topSeason && <div className="stat-pill"><div className="k">{topSeason.points}</div><div className="l">Season leader pts</div></div>}
         </div>
         <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/scorecard"><button className="btn" style={{ flex: '1 1 auto' }}>🏌️ Live Scorecard</button></Link>
+          <Link href="/live"><button className="btn" style={{ flex: '1 1 auto' }}>⛳ On Course</button></Link>
           <Link href="/record" style={{ flex: '1 1 auto' }}><button className="btn ghost" style={{ width: '100%' }}>+ Record a Round</button></Link>
         </div>
       </section>

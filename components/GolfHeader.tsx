@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 const NAV = [
-  { href: '/',          label: 'Standings' },
-  { href: '/scorecard', label: '🏌️ Scorecard' },
-  { href: '/record',    label: 'Record Round' },
-  { href: '/live',      label: '📍 Live' },
-  { href: '/courses',   label: 'Courses' },
-  { href: '/join',      label: 'Join' },
-  { href: '/rules',     label: 'How It Works' },
+  { href: '/',        label: 'Standings' },
+  { href: '/live',    label: '⛳ On Course' },
+  { href: '/record',  label: 'Record Round' },
+  { href: '/courses', label: 'Courses' },
+  { href: '/join',    label: 'Join' },
+  { href: '/rules',   label: 'How It Works' },
 ];
 
 export default function GolfHeader() {
