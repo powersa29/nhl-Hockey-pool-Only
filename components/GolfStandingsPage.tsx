@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { League, StandingRow, SeasonStandingRow } from '@/lib/golf-db';
 import { weekLabel } from '@/lib/golf-scoring';
+import LiveScoreboard from './LiveScoreboard';
 
 interface Props {
   currentLeague: League;
@@ -66,10 +67,12 @@ export default function GolfStandingsPage({
           {topSeason && <div className="stat-pill"><div className="k">{topSeason.points}</div><div className="l">Season leader pts</div></div>}
         </div>
         <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/record"><button className="btn" style={{ flex: '1 1 auto' }}>+ Record a Round</button></Link>
-          <Link href="/join" style={{ flex: '1 1 auto' }}><button className="btn ghost" style={{ width: '100%' }}>Join the League</button></Link>
+          <Link href="/scorecard"><button className="btn" style={{ flex: '1 1 auto' }}>🏌️ Live Scorecard</button></Link>
+          <Link href="/record" style={{ flex: '1 1 auto' }}><button className="btn ghost" style={{ width: '100%' }}>+ Record a Round</button></Link>
         </div>
       </section>
+
+      <LiveScoreboard />
 
       <div className="card">
         <div className="card-header">
