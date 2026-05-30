@@ -10,17 +10,27 @@ interface HoleRow {
   handicap: number | null;
 }
 
-function emptyHoles(): HoleRow[] {
+type Nine = 'front' | 'back';
+
+function emptyNine(startHole: number): HoleRow[] {
   return Array.from({ length: 9 }, (_, i) => ({
-    hole_number: i + 1, par: 4, yards: null, handicap: null,
+    hole_number: startHole + i, par: 4, yards: null, handicap: null,
   }));
+}
+
+function fillHoles(existing: HoleRow[], startHole: number): HoleRow[] {
+  return emptyNine(startHole).map(h => {
+    const found = existing.find(e => e.hole_number === h.hole_number);
+    return found ? { ...h, ...found } : h;
+  });
 }
 
 export default function CourseHoleEditor({ tees }: { tees: Tee[] }) {
   const [selectedTeeId, setSelectedTeeId] = useState<number | null>(tees[0]?.id ?? null);
-  const [holeData, setHoleData]           = useState<Record<number, HoleRow[]>>({});
+  const [nine, setNine]                   = useState<Nine>('front');
+  const [holeData, setHoleData]           = useState<Record<string, HoleRow[]>>({});
   const [editing, setEditing]             = useState(false);
-  const [editRows, setEditRows]           = useState<HoleRow[]>(emptyHoles());
+  const [editRows, setEditRows]           = useState<HoleRow[]>(emptyNine(1));
   const [saving, setSaving]               = useState(false);
   const [loaded, setLoaded]               = useState<Set<number>>(new Set());
 
@@ -28,19 +38,26 @@ export default function CourseHoleEditor({ tees }: { tees: Tee[] }) {
     if (!selectedTeeId || loaded.has(selectedTeeId)) return;
     fetch(`/api/holes?teeId=${selectedTeeId}`)
       .then(r => r.json())
-      .then(data => {
-        setHoleData(prev => ({ ...prev, [selectedTeeId]: Array.isArray(data) ? data : [] }));
+      .then((data: HoleRow[]) => {
+        const allRows = Array.isArray(data) ? data : [];
+        const key = String(selectedTeeId);
+        setHoleData(prev => ({ ...prev, [key]: allRows }));
         setLoaded(prev => new Set(prev).add(selectedTeeId));
       });
   }, [selectedTeeId, loaded]);
 
+  const key      = String(selectedTeeId);
+  const allRows  = holeData[key] ?? [];
+  const front    = allRows.filter(h => h.hole_number <= 9).sort((a, b) => a.hole_number - b.hole_number);
+  const back     = allRows.filter(h => h.hole_number >= 10).sort((a, b) => a.hole_number - b.hole_number);
+  const hasBack  = back.length > 0;
+  const display  = nine === 'front' ? front : back;
+  const startH   = nine === 'front' ? 1 : 10;
+  const hasData  = display.length > 0;
+  const totalPar = display.reduce((a, h) => a + h.par, 0);
+
   function startEditing() {
-    const existing = holeData[selectedTeeId!] ?? [];
-    const merged = emptyHoles().map(h => {
-      const found = existing.find(e => e.hole_number === h.hole_number);
-      return found ? { ...h, ...found } : h;
-    });
-    setEditRows(merged);
+    setEditRows(fillHoles(display, startH));
     setEditing(true);
   }
 
@@ -52,48 +69,50 @@ export default function CourseHoleEditor({ tees }: { tees: Tee[] }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ teeId: selectedTeeId, holes: editRows }),
     });
-    setHoleData(prev => ({ ...prev, [selectedTeeId]: [...editRows] }));
+    // Refresh cache
+    const allExcept = allRows.filter(h =>
+      nine === 'front' ? h.hole_number > 9 : h.hole_number < 10
+    );
+    setHoleData(prev => ({ ...prev, [key]: [...allExcept, ...editRows] }));
     setEditing(false);
     setSaving(false);
   }
 
-  const displayRows = selectedTeeId ? (holeData[selectedTeeId] ?? []) : [];
-  const hasData     = displayRows.length > 0;
-  const totalPar    = displayRows.reduce((a, h) => a + h.par, 0);
-  const editPar     = editRows.reduce((a, h) => a + h.par, 0);
-  const editYds     = editRows.reduce((a, h) => a + (h.yards ?? 0), 0);
-
-  const cellStyle: React.CSSProperties = {
-    padding: '4px 2px', textAlign: 'center', fontSize: 12,
-  };
-  const inputStyle: React.CSSProperties = {
-    width: 38, textAlign: 'center', border: '1px solid var(--line)', borderRadius: 3,
-    background: 'var(--chip)', color: 'var(--ink)', fontSize: 11, padding: '2px',
+  const cellSt: React.CSSProperties = { padding: '4px 2px', textAlign: 'center', fontSize: 12 };
+  const inputSt: React.CSSProperties = {
+    width: 38, textAlign: 'center', border: '1px solid var(--line)',
+    borderRadius: 3, background: 'var(--chip)', color: 'var(--ink)', fontSize: 11, padding: '2px',
   };
 
   return (
     <div style={{ marginTop: 16, borderTop: '1.5px dashed var(--line)', paddingTop: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>Scorecard</span>
+
+        {/* Tee selector */}
         {tees.length > 1 && tees.map(t => (
-          <button
-            key={t.id}
-            onClick={() => { setSelectedTeeId(t.id); setEditing(false); }}
-            style={{
-              padding: '3px 8px', fontSize: 11, borderRadius: 4, cursor: 'pointer',
-              border: '1.5px solid var(--line)',
-              background: selectedTeeId === t.id ? 'var(--green-dark)' : 'var(--chip)',
-              color: selectedTeeId === t.id ? 'white' : 'var(--ink)',
-            }}
-          >
-            {t.tee_name}
+          <button key={t.id} onClick={() => { setSelectedTeeId(t.id); setEditing(false); }} style={{
+            padding: '3px 8px', fontSize: 11, borderRadius: 4, cursor: 'pointer',
+            border: '1.5px solid var(--line)',
+            background: selectedTeeId === t.id ? 'var(--green-dark)' : 'var(--chip)',
+            color: selectedTeeId === t.id ? 'white' : 'var(--ink)',
+          }}>{t.tee_name}</button>
+        ))}
+
+        {/* Front / Back 9 tabs */}
+        {(['front', 'back'] as Nine[]).map(n => (
+          <button key={n} onClick={() => { setNine(n); setEditing(false); }} style={{
+            padding: '3px 8px', fontSize: 11, borderRadius: 4, cursor: 'pointer',
+            border: '1.5px solid var(--line)',
+            background: nine === n ? 'var(--chip)' : 'transparent',
+            color: 'var(--ink)', fontWeight: nine === n ? 700 : 400,
+          }}>
+            {n === 'front' ? 'Front 9' : 'Back 9'}
           </button>
         ))}
+
         {!editing && (
-          <button
-            onClick={startEditing}
-            style={{ marginLeft: 'auto', fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: 'pointer', color: 'var(--ink)' }}
-          >
+          <button onClick={startEditing} style={{ marginLeft: 'auto', fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: 'pointer', color: 'var(--ink)' }}>
             {hasData ? '✏ Edit' : '+ Add Holes'}
           </button>
         )}
@@ -105,39 +124,41 @@ export default function CourseHoleEditor({ tees }: { tees: Tee[] }) {
             <table style={{ borderCollapse: 'collapse', width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ ...cellStyle, textAlign: 'left', color: 'var(--muted)', fontWeight: 600 }}></th>
-                  {editRows.map(h => <th key={h.hole_number} style={{ ...cellStyle, color: 'var(--muted)', minWidth: 40 }}>{h.hole_number}</th>)}
-                  <th style={{ ...cellStyle, color: 'var(--muted)' }}>Tot</th>
+                  <th style={{ ...cellSt, textAlign: 'left', color: 'var(--muted)', fontWeight: 600, paddingRight: 8 }} />
+                  {editRows.map(h => <th key={h.hole_number} style={{ ...cellSt, color: 'var(--muted)', minWidth: 40 }}>{h.hole_number}</th>)}
+                  <th style={{ ...cellSt, color: 'var(--muted)' }}>Tot</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ ...cellStyle, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Par</td>
+                  <td style={{ ...cellSt, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Par</td>
                   {editRows.map((h, i) => (
-                    <td key={h.hole_number} style={cellStyle}>
-                      <select value={h.par} onChange={e => { const n = [...editRows]; n[i] = { ...n[i], par: Number(e.target.value) }; setEditRows(n); }} style={inputStyle}>
-                        <option value={3}>3</option>
-                        <option value={4}>4</option>
-                        <option value={5}>5</option>
+                    <td key={h.hole_number} style={cellSt}>
+                      <select value={h.par} onChange={e => { const n = [...editRows]; n[i] = { ...n[i], par: Number(e.target.value) }; setEditRows(n); }} style={inputSt}>
+                        <option value={3}>3</option><option value={4}>4</option><option value={5}>5</option>
                       </select>
                     </td>
                   ))}
-                  <td style={{ ...cellStyle, fontWeight: 800, color: 'var(--green)' }}>{editPar}</td>
+                  <td style={{ ...cellSt, fontWeight: 800, color: 'var(--green)' }}>
+                    {editRows.reduce((a, h) => a + h.par, 0)}
+                  </td>
                 </tr>
                 <tr>
-                  <td style={{ ...cellStyle, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Yds</td>
+                  <td style={{ ...cellSt, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Yds</td>
                   {editRows.map((h, i) => (
-                    <td key={h.hole_number} style={cellStyle}>
-                      <input type="number" value={h.yards ?? ''} placeholder="—" onChange={e => { const n = [...editRows]; n[i] = { ...n[i], yards: e.target.value ? Number(e.target.value) : null }; setEditRows(n); }} style={inputStyle} />
+                    <td key={h.hole_number} style={cellSt}>
+                      <input type="number" value={h.yards ?? ''} placeholder="—" onChange={e => { const n = [...editRows]; n[i] = { ...n[i], yards: e.target.value ? Number(e.target.value) : null }; setEditRows(n); }} style={inputSt} />
                     </td>
                   ))}
-                  <td style={{ ...cellStyle, fontWeight: 700 }}>{editYds || '—'}</td>
+                  <td style={{ ...cellSt, fontWeight: 700 }}>
+                    {editRows.reduce((a, h) => a + (h.yards ?? 0), 0) || '—'}
+                  </td>
                 </tr>
                 <tr>
-                  <td style={{ ...cellStyle, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>HCP</td>
+                  <td style={{ ...cellSt, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>HCP</td>
                   {editRows.map((h, i) => (
-                    <td key={h.hole_number} style={cellStyle}>
-                      <input type="number" value={h.handicap ?? ''} placeholder="—" min={1} max={9} onChange={e => { const n = [...editRows]; n[i] = { ...n[i], handicap: e.target.value ? Number(e.target.value) : null }; setEditRows(n); }} style={inputStyle} />
+                    <td key={h.hole_number} style={cellSt}>
+                      <input type="number" value={h.handicap ?? ''} placeholder="—" min={1} max={9} onChange={e => { const n = [...editRows]; n[i] = { ...n[i], handicap: e.target.value ? Number(e.target.value) : null }; setEditRows(n); }} style={inputSt} />
                     </td>
                   ))}
                   <td />
@@ -157,28 +178,28 @@ export default function CourseHoleEditor({ tees }: { tees: Tee[] }) {
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
               <tr>
-                <th style={{ ...cellStyle, textAlign: 'left', color: 'var(--muted)', fontWeight: 600 }}></th>
-                {displayRows.map(h => <th key={h.hole_number} style={{ ...cellStyle, color: 'var(--muted)', minWidth: 28 }}>{h.hole_number}</th>)}
-                <th style={{ ...cellStyle, color: 'var(--muted)' }}>Tot</th>
+                <th style={{ ...cellSt, textAlign: 'left', color: 'var(--muted)', fontWeight: 600, paddingRight: 8 }} />
+                {display.map(h => <th key={h.hole_number} style={{ ...cellSt, color: 'var(--muted)', minWidth: 28 }}>{h.hole_number}</th>)}
+                <th style={{ ...cellSt, color: 'var(--muted)' }}>Tot</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style={{ ...cellStyle, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Par</td>
-                {displayRows.map(h => <td key={h.hole_number} style={{ ...cellStyle, fontWeight: 700 }}>{h.par}</td>)}
-                <td style={{ ...cellStyle, fontWeight: 800, color: 'var(--green)' }}>{totalPar}</td>
+                <td style={{ ...cellSt, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Par</td>
+                {display.map(h => <td key={h.hole_number} style={{ ...cellSt, fontWeight: 700 }}>{h.par}</td>)}
+                <td style={{ ...cellSt, fontWeight: 800, color: 'var(--green)' }}>{totalPar}</td>
               </tr>
-              {displayRows.some(h => h.yards) && (
+              {display.some(h => h.yards) && (
                 <tr>
-                  <td style={{ ...cellStyle, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Yds</td>
-                  {displayRows.map(h => <td key={h.hole_number} style={{ ...cellStyle, color: 'var(--muted)' }}>{h.yards ?? '—'}</td>)}
-                  <td style={{ ...cellStyle, color: 'var(--muted)' }}>{displayRows.reduce((a, h) => a + (h.yards ?? 0), 0)}</td>
+                  <td style={{ ...cellSt, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>Yds</td>
+                  {display.map(h => <td key={h.hole_number} style={{ ...cellSt, color: 'var(--muted)' }}>{h.yards ?? '—'}</td>)}
+                  <td style={{ ...cellSt, color: 'var(--muted)' }}>{display.reduce((a, h) => a + (h.yards ?? 0), 0)}</td>
                 </tr>
               )}
-              {displayRows.some(h => h.handicap) && (
+              {display.some(h => h.handicap) && (
                 <tr>
-                  <td style={{ ...cellStyle, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>HCP</td>
-                  {displayRows.map(h => <td key={h.hole_number} style={{ ...cellStyle, color: 'var(--muted)' }}>{h.handicap ?? '—'}</td>)}
+                  <td style={{ ...cellSt, textAlign: 'left', fontWeight: 600, paddingRight: 8 }}>HCP</td>
+                  {display.map(h => <td key={h.hole_number} style={{ ...cellSt, color: 'var(--muted)' }}>{h.handicap ?? '—'}</td>)}
                   <td />
                 </tr>
               )}
@@ -187,7 +208,7 @@ export default function CourseHoleEditor({ tees }: { tees: Tee[] }) {
         </div>
       ) : loaded.has(selectedTeeId!) ? (
         <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
-          No hole data yet — click &quot;+ Add Holes&quot; to enter the scorecard.
+          No {nine === 'front' ? 'Front 9' : 'Back 9'} data yet — click &quot;+ Add Holes&quot; to enter the scorecard.
         </div>
       ) : (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>

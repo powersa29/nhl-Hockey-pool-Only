@@ -23,19 +23,26 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { player_id, player_name, course_id, course_name, tee_name, slope_rating, course_rating, handicap_index } = body;
+  const { player_id, player_name, course_id, course_name, tee_name,
+          slope_rating, course_rating, handicap_index, start_hole, hole_pars } = body;
 
   if (!player_name || !course_name || !tee_name || !slope_rating || !course_rating)
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
 
-  // Deactivate any existing active round for this player
   if (player_id) {
-    await db().from('live_rounds').update({ is_active: false }).eq('player_id', player_id).eq('is_active', true);
+    await db().from('live_rounds').update({ is_active: false })
+      .eq('player_id', player_id).eq('is_active', true);
   }
 
   const { data, error } = await db()
     .from('live_rounds')
-    .insert({ player_id, player_name, course_id, course_name, tee_name, slope_rating, course_rating, handicap_index, scores: [] })
+    .insert({
+      player_id, player_name, course_id, course_name, tee_name,
+      slope_rating, course_rating, handicap_index,
+      start_hole: start_hole ?? 1,
+      hole_pars:  hole_pars  ?? [],
+      scores: [],
+    })
     .select()
     .single();
 
@@ -44,8 +51,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
-  const { id, scores } = body;
+  const { id, scores } = await req.json();
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 });
 
   const { data, error } = await db()

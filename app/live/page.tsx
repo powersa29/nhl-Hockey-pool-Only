@@ -10,49 +10,82 @@ const GolfMap = dynamic(() => import('@/components/GolfMap'), { ssr: false });
 
 type CourseWithTees = Course & { tees: Tee[] };
 type Step = 'setup' | 'playing' | 'done' | 'submitted';
+type Nine = 'front' | 'back';
 
 interface LiveLocation {
-  id: number;
-  player_id: number;
-  player_name: string;
-  course_id: number | null;
-  course_name: string;
-  lat: number;
-  lng: number;
-  updated_at: string;
+  id: number; player_id: number; player_name: string;
+  course_id: number | null; course_name: string;
+  lat: number; lng: number; updated_at: string;
 }
-
 interface HoleData {
-  hole_number: number;
-  par: number;
-  yards: number | null;
+  hole_number: number; par: number;
+  yards: number | null; handicap: number | null;
 }
 
 const POLL_MS   = 12_000;
 const UPDATE_MS = 15_000;
 const COLORS    = ['#15803d','#1d4ed8','#b45309','#7c3aed','#dc2626','#0891b2'];
 
+const SCORE_NAMES: Record<number, string> = {
+  [-2]: 'Eagle', [-1]: 'Birdie', [0]: 'Par', [1]: 'Bogey', [2]: 'Double', [3]: 'Triple',
+};
+
 function scoreName(score: number, par: number): string {
-  const d = score - par;
-  if (d <= -3) return 'Albatross!';
-  if (d === -2) return 'Eagle!';
-  if (d === -1) return 'Birdie!';
-  if (d === 0) return 'Par';
-  if (d === 1) return 'Bogey';
-  if (d === 2) return 'Double';
-  return `+${d}`;
+  return SCORE_NAMES[score - par] ?? `+${score - par}`;
 }
-
-function vsParStr(n: number): string {
-  if (n === 0) return 'E';
-  return n > 0 ? `+${n}` : `${n}`;
-}
-
+function vsParStr(n: number) { return n === 0 ? 'E' : n > 0 ? `+${n}` : `${n}`; }
 function timeAgo(ts: string) {
   const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   return `${Math.floor(s / 3600)}h ago`;
+}
+
+// Par-relative score buttons: Eagle → Triple + More
+function getScoreBtns(par: number | null) {
+  if (!par) {
+    return [2,3,4,5,6,7,8].map(n => ({ n, label: '', isMore: false }))
+      .concat([{ n: 9, label: 'More', isMore: true }]);
+  }
+  const btns: { n: number; label: string; isMore: boolean }[] = [];
+  for (let d = -2; d <= 3; d++) {
+    const n = par + d;
+    if (n < 1) continue;
+    btns.push({ n, label: SCORE_NAMES[d] ?? '', isMore: false });
+  }
+  btns.push({ n: par + 4, label: 'More', isMore: true });
+  return btns;
+}
+
+function btnBg(n: number, par: number | null, isMore: boolean): string {
+  if (isMore || !par) return 'var(--chip)';
+  const d = n - par;
+  if (d <= -2) return '#1d4ed8';
+  if (d === -1) return '#15803d';
+  if (d === 0)  return 'var(--green-dark)';
+  if (d === 1)  return '#92400e';
+  return '#991b1b';
+}
+
+// Score bubble (colored circle/square like a real scorecard)
+function ScoreBubble({ score, par, size = 26 }: { score: number; par?: number; size?: number }) {
+  const diff   = par != null ? score - par : null;
+  const bg     = diff == null ? 'transparent'
+    : diff <= -2 ? '#1d4ed8'
+    : diff === -1 ? '#15803d'
+    : diff === 0  ? 'transparent'
+    : diff === 1  ? '#92400e'
+    : '#991b1b';
+  const color  = diff == null || diff === 0 ? 'var(--ink)' : 'white';
+  const radius = diff == null || diff <= 0 ? '50%' : '3px';
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius,
+      background: bg, color, fontWeight: 700,
+      fontSize: size * 0.52, display: 'grid', placeItems: 'center', margin: '0 auto',
+      border: diff === -2 ? '1.5px solid #93c5fd' : diff === 2 ? '1.5px solid #fca5a5' : 'none',
+    }}>{score}</div>
+  );
 }
 
 export default function LivePage() {
@@ -63,20 +96,23 @@ export default function LivePage() {
   const [playerId, setPlayerId] = useState('');
   const [courseId, setCourseId] = useState('');
   const [teeId, setTeeId]       = useState('');
+  const [nine, setNine]         = useState<Nine>('front');
 
-  const [step, setStep]               = useState<Step>('setup');
-  const [sharing, setSharing]         = useState(false);
-  const [geoError, setGeoError]       = useState('');
-  const [starting, setStarting]       = useState(false);
+  const [step, setStep]             = useState<Step>('setup');
+  const [sharing, setSharing]       = useState(false);
+  const [geoError, setGeoError]     = useState('');
+  const [starting, setStarting]     = useState(false);
   const [mapCollapsed, setMapCollapsed] = useState(false);
 
-  const [holes, setHoles]             = useState<HoleData[]>([]);
-  const [scores, setScores]           = useState<number[]>([]);
+  const [allHoles, setAllHoles]     = useState<HoleData[]>([]);
+  const [scores, setScores]         = useState<number[]>([]);
   const [currentHole, setCurrentHole] = useState(0);
-  const [submitting, setSubmitting]   = useState(false);
-  const [flashLabel, setFlashLabel]   = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [flashLabel, setFlashLabel] = useState('');
+  const [moreMode, setMoreMode]     = useState(false);
+  const [otherScore, setOtherScore] = useState(8);
 
-  const watchIdRef   = useRef<number | null>(null);
+  const watchIdRef  = useRef<number | null>(null);
   const sendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPos      = useRef<{ lat: number; lng: number } | null>(null);
@@ -86,11 +122,10 @@ export default function LivePage() {
   const playersRef   = useRef<Player[]>([]);
   const coursesRef   = useRef<CourseWithTees[]>([]);
 
-  // keep refs in sync with state for use inside intervals
   useEffect(() => { playersRef.current = players; }, [players]);
   useEffect(() => { coursesRef.current = courses; }, [courses]);
 
-  // ── Load data ────────────────────────────────────────────────────────────────
+  // ── Load data ─────────────────────────────────────────────────────────────
   useEffect(() => {
     fetch('/api/players').then(r => r.json()).then(setPlayers);
     fetch('/api/courses').then(r => r.json()).then(setCourses);
@@ -100,10 +135,10 @@ export default function LivePage() {
   }, []);
 
   useEffect(() => {
-    if (!teeId) { setHoles([]); return; }
+    if (!teeId) { setAllHoles([]); return; }
     fetch(`/api/holes?teeId=${teeId}`)
       .then(r => r.json())
-      .then(data => setHoles(Array.isArray(data) ? data : []));
+      .then(data => setAllHoles(Array.isArray(data) ? data : []));
   }, [teeId]);
 
   useEffect(() => {
@@ -115,67 +150,90 @@ export default function LivePage() {
     return () => window.removeEventListener('beforeunload', stop);
   }, []);
 
-  // ── GPS ──────────────────────────────────────────────────────────────────────
+  // ── GPS ───────────────────────────────────────────────────────────────────
   async function pollLive() {
     const data = await fetch('/api/live').then(r => r.json()).catch(() => []);
     setLiveList(data);
   }
 
   function pushLocation(lat: number, lng: number) {
-    const pId    = playerIdRef.current;
-    const cId    = courseIdRef.current;
-    const player = playersRef.current.find(p => p.id === Number(pId));
-    const course = coursesRef.current.find(c => c.id === Number(cId));
+    const p = playersRef.current.find(p => p.id === Number(playerIdRef.current));
+    const c = coursesRef.current.find(c => c.id === Number(courseIdRef.current));
     return fetch('/api/live', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        player_id:   Number(pId),
-        player_name: player?.name ?? '',
-        course_id:   course?.id ?? null,
-        course_name: course?.name ?? '',
-        lat, lng,
+        player_id: Number(playerIdRef.current), player_name: p?.name ?? '',
+        course_id: c?.id ?? null, course_name: c?.name ?? '', lat, lng,
       }),
     }).then(() => pollLive());
   }
 
-  // ── Start round ──────────────────────────────────────────────────────────────
+  // ── Derived: front/back split ─────────────────────────────────────────────
+  const frontHoles = allHoles.filter(h => h.hole_number <= 9).sort((a, b) => a.hole_number - b.hole_number);
+  const backHoles  = allHoles.filter(h => h.hole_number >= 10).sort((a, b) => a.hole_number - b.hole_number);
+  const hasBack    = backHoles.length > 0;
+  const holes      = nine === 'front' ? frontHoles : backHoles;
+  const startHole  = nine === 'front' ? 1 : 10;
+  const holeRange  = Array.from({ length: 9 }, (_, i) => startHole + i);
+  const holeMap    = new Map(holes.map(h => [h.hole_number, h]));
+
+  // ── Derived: scoring ──────────────────────────────────────────────────────
+  const player         = players.find(p => p.id === Number(playerId));
+  const course         = courses.find(c => c.id === Number(courseId));
+  const tee            = course?.tees.find(t => t.id === Number(teeId));
+  const gross          = scores.reduce((a, b) => a + b, 0);
+  const hcp            = player && tee ? courseHandicap9(player.handicap_index, tee.slope_rating) : 0;
+  const net            = gross - hcp;
+  const currentHoleNum = holeRange[currentHole] ?? startHole;
+  const currentHolePar = holeMap.get(currentHoleNum)?.par ?? null;
+  const currentHoleYds = holeMap.get(currentHoleNum)?.yards ?? null;
+  const parThrough     = holeRange.slice(0, scores.length).reduce((a, h) => a + (holeMap.get(h)?.par ?? 0), 0);
+  const totalCoursePar = holes.reduce((a, h) => a + h.par, 0);
+  const vsParNow       = scores.length > 0 && parThrough > 0 ? gross - parThrough : null;
+  const scoreBtns      = getScoreBtns(currentHolePar);
+
+  const pins: LivePin[] = liveList.map(l => ({
+    player_id: l.player_id, player_name: l.player_name,
+    lat: l.lat, lng: l.lng, course_id: l.course_id,
+  }));
+
+  // ── Start round ────────────────────────────────────────────────────────────
   async function startRound() {
     if (!playerId || !courseId || !teeId) return;
     setStarting(true);
     setGeoError('');
-
     playerIdRef.current = playerId;
     courseIdRef.current = courseId;
 
-    const player = players.find(p => p.id === Number(playerId))!;
-    const course = courses.find(c => c.id === Number(courseId))!;
-    const tee    = course.tees.find(t => t.id === Number(teeId))!;
+    const p = players.find(px => px.id === Number(playerId))!;
+    const c = courses.find(cx => cx.id === Number(courseId))!;
+    const t = c.tees.find(tx => tx.id === Number(teeId))!;
+
+    const holeParsPayload = holes.map(h => ({
+      hole_number: h.hole_number, par: h.par, yards: h.yards ?? null,
+    }));
 
     const res = await fetch('/api/live-scoring', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        player_id:      player.id,
-        player_name:    player.name,
-        course_id:      course.id,
-        course_name:    course.name,
-        tee_name:       tee.tee_name,
-        slope_rating:   tee.slope_rating,
-        course_rating:  tee.course_rating,
-        handicap_index: player.handicap_index,
+        player_id: p.id, player_name: p.name,
+        course_id: c.id, course_name: c.name,
+        tee_name: t.tee_name, slope_rating: t.slope_rating,
+        course_rating: t.course_rating, handicap_index: p.handicap_index,
+        start_hole: startHole, hole_pars: holeParsPayload,
       }),
     });
     const roundData = await res.json();
     liveRoundRef.current = roundData.id;
-
     setScores([]);
     setCurrentHole(0);
+    setMoreMode(false);
     setMapCollapsed(true);
     setStep('playing');
     setStarting(false);
 
-    // GPS — non-blocking; scoring starts regardless
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async pos => {
@@ -183,11 +241,9 @@ export default function LivePage() {
           lastPos.current = { lat, lng };
           await pushLocation(lat, lng);
           setSharing(true);
-
           watchIdRef.current = navigator.geolocation.watchPosition(
-            p => { lastPos.current = { lat: p.coords.latitude, lng: p.coords.longitude }; },
-            () => {},
-            { enableHighAccuracy: true, maximumAge: 5000 },
+            px => { lastPos.current = { lat: px.coords.latitude, lng: px.coords.longitude }; },
+            () => {}, { enableHighAccuracy: true, maximumAge: 5000 },
           );
           sendTimerRef.current = setInterval(() => {
             if (lastPos.current) pushLocation(lastPos.current.lat, lastPos.current.lng);
@@ -195,7 +251,7 @@ export default function LivePage() {
         },
         err => setGeoError(
           err.code === 1
-            ? 'Location permission denied — GPS pin won\'t show on map.'
+            ? 'Location permission denied — scoring only.'
             : 'Could not get GPS — scoring only.',
         ),
         { enableHighAccuracy: true, timeout: 10_000 },
@@ -203,30 +259,22 @@ export default function LivePage() {
     }
   }
 
-  // ── Score entry ──────────────────────────────────────────────────────────────
+  // ── Score entry ────────────────────────────────────────────────────────────
   function enterScore(score: number) {
-    const holePar = holes[currentHole]?.par;
-    if (holePar) {
-      setFlashLabel(scoreName(score, holePar));
+    if (currentHolePar) {
+      setFlashLabel(scoreName(score, currentHolePar));
       setTimeout(() => setFlashLabel(''), 1400);
     }
-
     const next = [...scores, score];
     setScores(next);
-
+    setMoreMode(false);
     if (liveRoundRef.current) {
       fetch('/api/live-scoring', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: liveRoundRef.current, scores: next }),
       });
     }
-
-    if (currentHole >= 8) {
-      setStep('done');
-    } else {
-      setCurrentHole(h => h + 1);
-    }
+    if (currentHole >= 8) { setStep('done'); } else { setCurrentHole(h => h + 1); }
   }
 
   function undoLast() {
@@ -234,24 +282,25 @@ export default function LivePage() {
     const prev = scores.slice(0, -1);
     setScores(prev);
     setCurrentHole(h => Math.max(0, h - 1));
+    setMoreMode(false);
     if (step === 'done') setStep('playing');
     if (liveRoundRef.current) {
       fetch('/api/live-scoring', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: liveRoundRef.current, scores: prev }),
       });
     }
   }
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
+  // ── Submit ─────────────────────────────────────────────────────────────────
   async function submitRound() {
     setSubmitting(true);
-    const gross = scores.reduce((a, b) => a + b, 0);
     await fetch('/api/rounds', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id: Number(playerId), course_id: Number(courseId), tee_id: Number(teeId), gross_score: gross }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player_id: Number(playerId), course_id: Number(courseId),
+        tee_id: Number(teeId), gross_score: gross,
+      }),
     });
     if (liveRoundRef.current) {
       await fetch(`/api/live-scoring?id=${liveRoundRef.current}`, { method: 'DELETE' });
@@ -260,37 +309,138 @@ export default function LivePage() {
     setStep('submitted');
   }
 
-  // ── End round ────────────────────────────────────────────────────────────────
   async function stopEverything() {
     if (sendTimerRef.current) { clearInterval(sendTimerRef.current); sendTimerRef.current = null; }
     if (watchIdRef.current != null) { navigator.geolocation?.clearWatch(watchIdRef.current); watchIdRef.current = null; }
     if (playerIdRef.current) await fetch(`/api/live?playerId=${playerIdRef.current}`, { method: 'DELETE' });
     if (liveRoundRef.current) await fetch(`/api/live-scoring?id=${liveRoundRef.current}`, { method: 'DELETE' });
-    setSharing(false);
-    setStep('setup');
-    setScores([]);
-    setCurrentHole(0);
-    liveRoundRef.current = null;
-    setMapCollapsed(false);
-    pollLive();
+    setSharing(false); setStep('setup'); setScores([]); setCurrentHole(0);
+    liveRoundRef.current = null; setMapCollapsed(false); pollLive();
   }
 
-  // ── Derived ──────────────────────────────────────────────────────────────────
-  const player         = players.find(p => p.id === Number(playerId));
-  const course         = courses.find(c => c.id === Number(courseId));
-  const tee            = course?.tees.find(t => t.id === Number(teeId));
-  const gross          = scores.reduce((a, b) => a + b, 0);
-  const hcp            = player && tee ? courseHandicap9(player.handicap_index, tee.slope_rating) : 0;
-  const net            = gross - hcp;
-  const currentHolePar = holes[currentHole]?.par ?? null;
-  const parThrough     = holes.slice(0, scores.length).reduce((a, h) => a + h.par, 0);
-  const totalCoursePar = holes.reduce((a, h) => a + h.par, 0);
-  const vsParNow       = scores.length > 0 && parThrough > 0 ? gross - parThrough : null;
+  // ── Scorecard table (shared by playing + done) ─────────────────────────────
+  const cellSt: React.CSSProperties = {
+    padding: '6px 3px', textAlign: 'center',
+    borderRight: '1px solid var(--line)', minWidth: 30, fontSize: 12,
+  };
+  const stickyLabel: React.CSSProperties = {
+    padding: '6px 8px', textAlign: 'left', fontWeight: 600,
+    position: 'sticky', left: 0, zIndex: 2, background: 'var(--chip)',
+    borderRight: '2px solid var(--line)', whiteSpace: 'nowrap', fontSize: 12,
+  };
 
-  const pins: LivePin[] = liveList.map(l => ({
-    player_id: l.player_id, player_name: l.player_name,
-    lat: l.lat, lng: l.lng, course_id: l.course_id,
-  }));
+  function ScorecardTable({ forDone = false }: { forDone?: boolean }) {
+    const hasYards = holes.some(h => h.yards);
+    const hasHdcp  = holes.some(h => h.handicap);
+    return (
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as unknown as undefined }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 380 }}>
+          <thead>
+            <tr style={{ background: 'var(--green-dark)', color: 'white' }}>
+              <th style={{ ...stickyLabel, background: 'var(--green-dark)', color: 'white', borderRight: '2px solid rgba(255,255,255,0.25)' }}>
+                Hole
+              </th>
+              {holeRange.map((h, i) => (
+                <th key={h} style={{
+                  ...cellSt,
+                  background: !forDone && i === currentHole ? '#14532d' : 'var(--green-dark)',
+                  color: 'white', fontWeight: !forDone && i === currentHole ? 800 : 600,
+                  borderBottom: !forDone && i === currentHole ? '3px solid #4ade80' : undefined,
+                }}>{h}</th>
+              ))}
+              <th style={{ ...cellSt, background: 'var(--green-deep)', color: 'white', fontWeight: 700, borderLeft: '2px solid rgba(255,255,255,0.2)' }}>Out</th>
+            </tr>
+          </thead>
+          <tbody>
+            {holes.length > 0 && (
+              <tr style={{ background: 'var(--ice-2)' }}>
+                <td style={{ ...stickyLabel, background: 'var(--ice-2)', color: 'var(--muted)', fontWeight: 600 }}>Par</td>
+                {holeRange.map(h => (
+                  <td key={h} style={{ ...cellSt, fontWeight: 700 }}>{holeMap.get(h)?.par ?? '—'}</td>
+                ))}
+                <td style={{ ...cellSt, fontWeight: 800, borderLeft: '2px solid var(--line)' }}>{totalCoursePar || '—'}</td>
+              </tr>
+            )}
+            {hasYards && (
+              <tr>
+                <td style={{ ...stickyLabel, color: 'var(--muted)', fontWeight: 600 }}>Yds</td>
+                {holeRange.map(h => (
+                  <td key={h} style={{ ...cellSt, color: 'var(--muted)', fontSize: 10 }}>{holeMap.get(h)?.yards ?? ''}</td>
+                ))}
+                <td style={{ ...cellSt, color: 'var(--muted)', fontSize: 10, borderLeft: '2px solid var(--line)' }}>
+                  {holes.reduce((a, h) => a + (h.yards ?? 0), 0) || ''}
+                </td>
+              </tr>
+            )}
+            {hasHdcp && (
+              <tr>
+                <td style={{ ...stickyLabel, color: 'var(--muted)', fontWeight: 600 }}>Hdcp</td>
+                {holeRange.map(h => (
+                  <td key={h} style={{ ...cellSt, color: 'var(--muted)' }}>{holeMap.get(h)?.handicap ?? ''}</td>
+                ))}
+                <td style={{ ...cellSt, borderLeft: '2px solid var(--line)' }} />
+              </tr>
+            )}
+            {/* Score row */}
+            <tr style={{ borderTop: '2px solid var(--green)' }}>
+              <td style={{ ...stickyLabel, fontWeight: 800, fontSize: 13 }}>
+                {player?.name.split(' ')[0] ?? 'Score'}
+              </td>
+              {holeRange.map((h, i) => {
+                const s   = scores[i];
+                const par = holeMap.get(h)?.par;
+                const isActive = !forDone && i === currentHole;
+                if (s !== undefined) {
+                  return (
+                    <td key={h} style={{ ...cellSt, padding: '3px 2px' }}>
+                      <ScoreBubble score={s} par={par} size={24} />
+                    </td>
+                  );
+                }
+                if (isActive) {
+                  return (
+                    <td key={h} style={{ ...cellSt, background: 'rgba(21,128,61,0.1)' }}>
+                      <div style={{
+                        width: 24, height: 24, margin: '0 auto',
+                        border: '2px dashed var(--green)', borderRadius: '50%',
+                        display: 'grid', placeItems: 'center',
+                        fontSize: 10, color: 'var(--green)', fontWeight: 700,
+                        animation: 'gpulse 1.4s infinite',
+                      }}>▼</div>
+                    </td>
+                  );
+                }
+                return <td key={h} style={cellSt} />;
+              })}
+              <td style={{ ...cellSt, fontWeight: 800, fontSize: 14, borderLeft: '2px solid var(--line)' }}>
+                {scores.length > 0 ? gross : ''}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Totals footer */}
+        {scores.length > 0 && (
+          <div style={{ display: 'flex', borderTop: '1px solid var(--line)', fontSize: 12 }}>
+            <div style={{ flex: 1, textAlign: 'center', padding: '7px 4px', borderRight: '1px solid var(--line)' }}>
+              <span style={{ color: 'var(--muted)' }}>HCP </span>
+              <strong>-{hcp}</strong>
+            </div>
+            <div style={{ flex: 1, textAlign: 'center', padding: '7px 4px', borderRight: '1px solid var(--line)' }}>
+              <span style={{ color: 'var(--muted)' }}>Net </span>
+              <strong style={{ color: 'var(--green)' }}>{net}</strong>
+            </div>
+            {vsParNow !== null && (
+              <div style={{ flex: 1, textAlign: 'center', padding: '7px 4px' }}>
+                <span style={{ color: 'var(--muted)' }}>vs Par </span>
+                <strong style={{ color: vsParNow <= 0 ? 'var(--green)' : 'var(--ink)' }}>{vsParStr(vsParNow)}</strong>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // ════════════════════════════════════════════════════════════════════
   // SUBMITTED
@@ -322,62 +472,30 @@ export default function LivePage() {
   }
 
   // ════════════════════════════════════════════════════════════════════
-  // DONE — review before submitting
+  // DONE — review
   // ════════════════════════════════════════════════════════════════════
   if (step === 'done') {
     return (
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px' }}>
-        <div className="section-header" style={{ marginBottom: 20 }}>
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 16px' }}>
+        <div className="section-header" style={{ marginBottom: 16 }}>
           <h2>Round Complete ⛳</h2>
           <span className="tag green">9/9 holes</span>
         </div>
 
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Hole by hole</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 4 }}>
-            {scores.map((s, i) => {
-              const par  = holes[i]?.par;
-              const diff = par != null ? s - par : null;
-              const bg   = diff == null ? 'var(--chip)'
-                : diff < 0   ? '#15803d'
-                : diff === 0  ? 'var(--green-dark)'
-                : diff === 1  ? '#b45309'
-                : '#dc2626';
-              return (
-                <div key={i} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 2 }}>{i + 1}</div>
-                  {par && <div style={{ fontSize: 9, color: 'var(--muted)', marginBottom: 2 }}>P{par}</div>}
-                  <div style={{
-                    width: 28, height: 28, margin: '0 auto',
-                    borderRadius: diff != null && diff <= -2 ? '20%' : diff === -1 ? '6px' : '50%',
-                    background: bg, color: 'white', display: 'grid', placeItems: 'center',
-                    fontWeight: 700, fontSize: 13,
-                  }}>{s}</div>
-                </div>
-              );
-            })}
+        <div className="card" style={{ padding: 0, marginBottom: 16, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 14px 8px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid var(--line)' }}>
+            {player?.name} · {course?.name} · {tee?.tee_name}
+            {nine === 'back' && <span style={{ color: 'var(--muted)', fontWeight: 400, marginLeft: 6 }}>Back 9</span>}
           </div>
-
-          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, textAlign: 'center' }}>
-            <div>
-              <div style={{ fontSize: 26, fontWeight: 800 }}>{gross}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>Gross{totalCoursePar > 0 ? ` / Par ${totalCoursePar}` : ''}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 26, fontWeight: 800 }}>-{hcp}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>HCP</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--green)' }}>{net}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>Net</div>
-            </div>
-          </div>
-          {totalCoursePar > 0 && (
-            <div style={{ marginTop: 12, textAlign: 'center', fontSize: 18, fontWeight: 800, color: gross - totalCoursePar <= 0 ? 'var(--green)' : 'var(--ink)' }}>
-              {vsParStr(gross - totalCoursePar)} vs par
-            </div>
-          )}
+          <ScorecardTable forDone />
         </div>
+
+        {totalCoursePar > 0 && (
+          <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 800, marginBottom: 16,
+            color: gross - totalCoursePar <= 0 ? 'var(--green)' : 'var(--ink)' }}>
+            {vsParStr(gross - totalCoursePar)} vs par
+          </div>
+        )}
 
         <button className="btn" style={{ width: '100%', marginBottom: 10 }} onClick={submitRound} disabled={submitting}>
           {submitting ? 'Submitting…' : '✓ Submit Official Round'}
@@ -389,112 +507,99 @@ export default function LivePage() {
   }
 
   // ════════════════════════════════════════════════════════════════════
-  // PLAYING — hole-by-hole
+  // PLAYING
   // ════════════════════════════════════════════════════════════════════
   if (step === 'playing') {
     return (
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px' }}>
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 16px' }}>
 
-        <div style={{ textAlign: 'center', marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
-            {player?.name} · {course?.name} · {tee?.tee_name}
-            {sharing && <span style={{ color: 'var(--green)', marginLeft: 6 }}>📍 GPS on</span>}
+        {/* Status bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, fontSize: 12 }}>
+          <div>
+            <strong>{player?.name}</strong>
+            <span style={{ color: 'var(--muted)', marginLeft: 6 }}>{course?.name} · {tee?.tee_name}</span>
+            {nine === 'back' && <span style={{ color: 'var(--muted)', marginLeft: 4 }}>· Back 9</span>}
           </div>
-          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1 }}>
-            Hole {currentHole + 1}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {sharing && <span style={{ color: 'var(--green)', fontSize: 11 }}>📍 GPS</span>}
+            <span style={{ color: 'var(--muted)' }}>{scores.length}/9</span>
           </div>
-          {currentHolePar ? (
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--green-dark)', marginTop: 2 }}>
-              Par {currentHolePar}
-              {holes[currentHole]?.yards && (
-                <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 400, marginLeft: 8 }}>
-                  {holes[currentHole].yards} yds
+        </div>
+
+        {/* Scorecard table */}
+        <div className="card" style={{ padding: 0, marginBottom: 14, overflow: 'hidden' }}>
+          <ScorecardTable />
+        </div>
+
+        {/* Current hole + score entry */}
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div style={{ textAlign: 'center', marginBottom: 10 }}>
+            <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
+              Hole {currentHoleNum}
+              {currentHolePar && (
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--muted)', marginLeft: 8 }}>
+                  Par {currentHolePar}
+                </span>
+              )}
+              {currentHoleYds && (
+                <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 400, marginLeft: 6 }}>
+                  {currentHoleYds} yds
                 </span>
               )}
             </div>
-          ) : (
-            <div style={{ fontSize: 14, color: 'var(--muted)' }}>of 9</div>
-          )}
-          <div style={{ minHeight: 30, marginTop: 4, fontSize: 22, fontWeight: 800, color: 'var(--green)' }}>
-            {flashLabel}
-          </div>
-        </div>
-
-        {/* Progress dots */}
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
-          {Array.from({ length: 9 }, (_, i) => (
-            <div key={i} style={{
-              height: 10, borderRadius: 5,
-              width: i === currentHole ? 24 : 10,
-              background: i < currentHole ? 'var(--green)' : i === currentHole ? 'var(--green-dark)' : 'var(--line)',
-              transition: 'width 0.2s, background 0.2s',
-            }} />
-          ))}
-        </div>
-
-        {/* Score buttons */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 18 }}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => {
-            const isPar    = currentHolePar === n;
-            const isBirdie = currentHolePar != null && n === currentHolePar - 1;
-            return (
-              <button
-                key={n}
-                onClick={() => enterScore(n)}
-                style={{
-                  height: 66, borderRadius: 'var(--radius)',
-                  border: isPar ? '3px solid var(--green)' : isBirdie ? '2px solid #166534' : '2px solid var(--line)',
-                  background: isPar ? 'var(--green-dark)' : isBirdie ? '#14532d' : 'var(--chip)',
-                  color: isPar || isBirdie ? 'white' : 'var(--ink)',
-                  fontSize: n === 10 ? 14 : 24, fontWeight: 800,
-                  cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                  touchAction: 'manipulation', position: 'relative',
-                }}
-              >
-                {n === 10 ? '10+' : n}
-                {isPar && (
-                  <div style={{ position: 'absolute', bottom: 3, left: 0, right: 0, fontSize: 8, color: 'rgba(255,255,255,0.75)', textAlign: 'center', letterSpacing: 1 }}>
-                    PAR
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Running score */}
-        {scores.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            <div style={{ flex: 1, textAlign: 'center', padding: '8px 4px', background: 'var(--ice-2)', borderRadius: 'var(--radius)', border: '1.5px solid var(--line)' }}>
-              <div style={{ fontSize: 20, fontWeight: 800 }}>{gross}</div>
-              <div style={{ fontSize: 10, color: 'var(--muted)' }}>Gross · {scores.length} holes</div>
-            </div>
-            {vsParNow !== null && (
-              <div style={{ flex: 1, textAlign: 'center', padding: '8px 4px', background: 'var(--ice-2)', borderRadius: 'var(--radius)', border: '1.5px solid var(--line)' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: vsParNow <= 0 ? 'var(--green)' : 'var(--ink)' }}>
-                  {vsParStr(vsParNow)}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>vs Par</div>
+            {flashLabel && (
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--green)', marginTop: 4 }}>
+                {flashLabel}
               </div>
             )}
-            <div style={{ flex: 1, textAlign: 'center', padding: '8px 4px', background: 'var(--ice-2)', borderRadius: 'var(--radius)', border: '1.5px solid var(--line)' }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--green)' }}>{net}</div>
-              <div style={{ fontSize: 10, color: 'var(--muted)' }}>Est. Net</div>
-            </div>
           </div>
-        )}
 
-        {/* Collapsible map */}
+          {!moreMode ? (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scoreBtns.length}, 1fr)`, gap: 6 }}>
+              {scoreBtns.map(btn => (
+                <button
+                  key={btn.n}
+                  onClick={() => btn.isMore ? (setMoreMode(true), setOtherScore((currentHolePar ?? 4) + 4)) : enterScore(btn.n)}
+                  style={{
+                    height: 60, borderRadius: 'var(--radius)',
+                    border: '2px solid var(--line)',
+                    background: btnBg(btn.n, currentHolePar, btn.isMore),
+                    color: btn.isMore ? 'var(--ink)' : 'white',
+                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+                  }}
+                >
+                  <span style={{ fontSize: btn.isMore ? 16 : 22, fontWeight: 800, lineHeight: 1 }}>
+                    {btn.isMore ? '…' : btn.n}
+                  </span>
+                  {btn.label && (
+                    <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.5, opacity: 0.85, textTransform: 'uppercase' }}>
+                      {btn.label}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', padding: '8px 0' }}>
+              <button onClick={() => setOtherScore(s => Math.max(1, s - 1))} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid var(--line)', background: 'var(--chip)', fontSize: 24, fontWeight: 800, cursor: 'pointer' }}>−</button>
+              <div style={{ fontSize: 52, fontWeight: 900, minWidth: 60, textAlign: 'center', lineHeight: 1 }}>{otherScore}</div>
+              <button onClick={() => setOtherScore(s => s + 1)} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid var(--line)', background: 'var(--chip)', fontSize: 24, fontWeight: 800, cursor: 'pointer' }}>+</button>
+              <button onClick={() => { enterScore(otherScore); }} className="btn" style={{ height: 44, padding: '0 16px' }}>✓</button>
+              <button onClick={() => setMoreMode(false)} className="btn ghost" style={{ height: 44, padding: '0 14px' }}>✕</button>
+            </div>
+          )}
+        </div>
+
+        {/* Collapsible map + group */}
         <div style={{ marginBottom: 14 }}>
-          <button
-            onClick={() => setMapCollapsed(c => !c)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--muted)', padding: '2px 0', marginBottom: 4 }}
-          >
+          <button onClick={() => setMapCollapsed(c => !c)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--muted)', padding: '2px 0', marginBottom: 4 }}>
             {mapCollapsed ? '▶ Show map & group' : '▼ Hide map'}
           </button>
           {!mapCollapsed && (
             <>
-              <div style={{ border: '2px solid var(--green-dark)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 10 }}>
+              <div style={{ border: '2px solid var(--green-dark)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 8 }}>
                 <GolfMap liveLocations={pins} height={200} />
               </div>
               {liveList.filter(l => l.player_id !== Number(playerId)).map((l, i) => (
@@ -514,11 +619,8 @@ export default function LivePage() {
 
         <div style={{ display: 'flex', gap: 8 }}>
           {scores.length > 0 && <button className="btn ghost" style={{ flex: 1 }} onClick={undoLast}>← Undo</button>}
-          <button className="btn danger" style={{ flex: scores.length > 0 ? 1 : undefined, width: scores.length === 0 ? '100%' : undefined }} onClick={stopEverything}>
-            End Round
-          </button>
+          <button className="btn danger" style={{ flex: scores.length > 0 ? 1 : undefined, width: scores.length === 0 ? '100%' : undefined }} onClick={stopEverything}>End Round</button>
         </div>
-
         {geoError && <div className="error-banner" style={{ marginTop: 10, fontSize: 12 }}>📍 {geoError}</div>}
       </div>
     );
@@ -545,10 +647,11 @@ export default function LivePage() {
       </div>
 
       <div style={{ marginBottom: 20, border: '2px solid var(--green-dark)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
-        <GolfMap liveLocations={pins} height={340} />
+        <GolfMap liveLocations={pins} height={300} />
       </div>
 
       <div className="live-grid">
+        {/* Start card */}
         <div className="card">
           <h3 style={{ fontSize: 16, marginBottom: 16 }}>Start Your Round</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -577,9 +680,43 @@ export default function LivePage() {
                 </select>
               </div>
             )}
+
+            {/* Front / Back 9 selector */}
+            {teeId && (
+              <div className="form-row" style={{ marginBottom: 0 }}>
+                <label>Which 9?</label>
+                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  {(['front', 'back'] as Nine[]).map(n => (
+                    <button key={n} onClick={() => setNine(n)} style={{
+                      flex: 1, padding: '10px 8px', borderRadius: 'var(--radius)',
+                      border: `2px solid ${nine === n ? 'var(--green)' : 'var(--line)'}`,
+                      background: nine === n ? 'var(--green-dark)' : 'var(--chip)',
+                      color: nine === n ? 'white' : 'var(--ink)',
+                      fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    }}>
+                      {n === 'front' ? 'Front 9' : 'Back 9'}
+                      {n === 'front' && frontHoles.length > 0 && (
+                        <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.8, marginTop: 2 }}>
+                          Holes 1–9 · Par {frontHoles.reduce((a, h) => a + h.par, 0)}
+                        </div>
+                      )}
+                      {n === 'back' && backHoles.length > 0 && (
+                        <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.8, marginTop: 2 }}>
+                          Holes 10–18 · Par {backHoles.reduce((a, h) => a + h.par, 0)}
+                        </div>
+                      )}
+                      {n === 'back' && !hasBack && (
+                        <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.6, marginTop: 2 }}>No scorecard yet</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {teeId && holes.length > 0 && (
               <div style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--ice-2)', borderRadius: 'var(--radius)', padding: '8px 10px' }}>
-                ⛳ Par {totalCoursePar} · {holes.map(h => h.par).join('-')}
+                ⛳ {nine === 'front' ? 'Front 9' : 'Back 9'} · Par {totalCoursePar} · {holes.map(h => h.par).join('–')}
               </div>
             )}
             {geoError && <div className="error-banner" style={{ marginTop: 0, fontSize: 12 }}>⚠️ {geoError}</div>}
@@ -587,11 +724,12 @@ export default function LivePage() {
               {starting ? 'Starting…' : '⛳ Start Round'}
             </button>
             <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>
-              Shares your GPS and tracks scores hole by hole — both visible to the group while this page is open.
+              Shares your GPS and tracks scores on a live scorecard visible to the whole group.
             </p>
           </div>
         </div>
 
+        {/* On course now */}
         <div className="card">
           <h3 style={{ fontSize: 16, marginBottom: 12 }}>On Course Now</h3>
           {liveList.length === 0 ? (
@@ -605,7 +743,7 @@ export default function LivePage() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.player_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{l.course_name || 'Unknown course'} · {timeAgo(l.updated_at)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{l.course_name || 'Unknown'} · {timeAgo(l.updated_at)}</div>
                   </div>
                   <span className="pulse-dot" style={{ width: 8, height: 8, background: 'var(--green)', display: 'inline-block', borderRadius: '50%', animation: 'gpulse 1.4s infinite', flexShrink: 0 }} />
                 </div>
