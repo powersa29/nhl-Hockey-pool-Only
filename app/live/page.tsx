@@ -149,6 +149,37 @@ export default function LivePage() {
     return () => window.removeEventListener('beforeunload', stop);
   }, []);
 
+  // ── Restore in-progress round from sessionStorage on mount ────────────────
+  useEffect(() => {
+    const saved = sessionStorage.getItem('golf-round');
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved);
+      if (!d.roundId) return;
+      liveRoundRef.current = d.roundId;
+      playerIdRef.current  = String(d.playerId ?? '');
+      courseIdRef.current  = String(d.courseId ?? '');
+      setPlayerId(String(d.playerId ?? ''));
+      setCourseId(String(d.courseId ?? ''));
+      setTeeId(String(d.teeId ?? ''));
+      setNine(d.nine ?? 'front');
+      setScores(d.scores ?? []);
+      setCurrentHole(d.currentHole ?? 0);
+      setMapCollapsed(true);
+      setStep(d.step ?? 'playing');
+    } catch {}
+  }, []); // only on mount
+
+  // ── Save active round state to sessionStorage whenever it changes ─────────
+  useEffect(() => {
+    if (step === 'playing' || step === 'done') {
+      sessionStorage.setItem('golf-round', JSON.stringify({
+        roundId: liveRoundRef.current,
+        scores, currentHole, step, playerId, courseId, teeId, nine,
+      }));
+    }
+  }, [step, scores, currentHole, playerId, courseId, teeId, nine]);
+
   // ── GPS ───────────────────────────────────────────────────────────────────
   async function pollLive() {
     const data = await fetch('/api/live').then(r => r.json()).catch(() => []);
@@ -304,6 +335,7 @@ export default function LivePage() {
     if (liveRoundRef.current) {
       await fetch(`/api/live-scoring?id=${liveRoundRef.current}`, { method: 'DELETE' });
     }
+    sessionStorage.removeItem('golf-round');
     setSubmitting(false);
     setStep('submitted');
   }
@@ -313,6 +345,7 @@ export default function LivePage() {
     if (watchIdRef.current != null) { navigator.geolocation?.clearWatch(watchIdRef.current); watchIdRef.current = null; }
     if (playerIdRef.current) await fetch(`/api/live?playerId=${playerIdRef.current}`, { method: 'DELETE' });
     if (liveRoundRef.current) await fetch(`/api/live-scoring?id=${liveRoundRef.current}`, { method: 'DELETE' });
+    sessionStorage.removeItem('golf-round');
     setSharing(false); setStep('setup'); setScores([]); setCurrentHole(0);
     liveRoundRef.current = null; setMapCollapsed(false); pollLive();
   }
