@@ -27,7 +27,8 @@ const UPDATE_MS = 15_000;
 const COLORS    = ['#15803d','#1d4ed8','#b45309','#7c3aed','#dc2626','#0891b2'];
 
 const SCORE_NAMES: Record<number, string> = {
-  [-2]: 'Eagle', [-1]: 'Birdie', [0]: 'Par', [1]: 'Bogey', [2]: 'Double', [3]: 'Triple',
+  [-4]: 'Condor', [-3]: 'Albatross', [-2]: 'Eagle', [-1]: 'Birdie',
+  [0]: 'Par', [1]: 'Bogey', [2]: 'Double', [3]: 'Triple',
 };
 
 function scoreName(score: number, par: number): string {
@@ -41,17 +42,15 @@ function timeAgo(ts: string) {
   return `${Math.floor(s / 3600)}h ago`;
 }
 
-// Par-relative score buttons: Eagle → Triple + More
+// Par-relative score buttons: always start from 1 (ace/hole-in-one) up to Triple + More
 function getScoreBtns(par: number | null) {
   if (!par) {
-    return [2,3,4,5,6,7,8].map(n => ({ n, label: '', isMore: false }))
+    return [1,2,3,4,5,6,7,8].map(n => ({ n, label: n === 1 ? 'Ace' : '', isMore: false }))
       .concat([{ n: 9, label: 'More', isMore: true }]);
   }
   const btns: { n: number; label: string; isMore: boolean }[] = [];
-  for (let d = -2; d <= 3; d++) {
-    const n = par + d;
-    if (n < 1) continue;
-    btns.push({ n, label: SCORE_NAMES[d] ?? '', isMore: false });
+  for (let d = -(par - 1); d <= 3; d++) {
+    btns.push({ n: par + d, label: SCORE_NAMES[d] ?? '', isMore: false });
   }
   btns.push({ n: par + 4, label: 'More', isMore: true });
   return btns;
@@ -60,11 +59,11 @@ function getScoreBtns(par: number | null) {
 function btnBg(n: number, par: number | null, isMore: boolean): string {
   if (isMore || !par) return 'var(--chip)';
   const d = n - par;
-  if (d <= -2) return '#1d4ed8';
-  if (d === -1) return '#15803d';
-  if (d === 0)  return 'var(--green-dark)';
-  if (d === 1)  return '#92400e';
-  return '#991b1b';
+  if (d <= -2) return '#1d4ed8';  // eagle / albatross / condor: blue
+  if (d === -1) return '#15803d'; // birdie: green
+  if (d === 0)  return 'var(--green-dark)'; // par
+  if (d === 1)  return '#92400e'; // bogey: amber
+  return '#991b1b'; // double+: red
 }
 
 // Score bubble (colored circle/square like a real scorecard)
@@ -555,13 +554,13 @@ export default function LivePage() {
           </div>
 
           {!moreMode ? (
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scoreBtns.length}, 1fr)`, gap: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {scoreBtns.map(btn => (
                 <button
                   key={btn.n}
                   onClick={() => btn.isMore ? (setMoreMode(true), setOtherScore((currentHolePar ?? 4) + 4)) : enterScore(btn.n)}
                   style={{
-                    height: 60, borderRadius: 'var(--radius)',
+                    flex: '1 1 0', minWidth: 44, height: 60, borderRadius: 'var(--radius)',
                     border: '2px solid var(--line)',
                     background: btnBg(btn.n, currentHolePar, btn.isMore),
                     color: (btn.isMore || !currentHolePar) ? 'var(--ink)' : 'white',
