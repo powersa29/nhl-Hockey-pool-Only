@@ -33,7 +33,9 @@ interface ApiCourse {
 
 // Handle every tee structure the API might return
 function extractApiTees(data: Record<string, unknown>): ApiTee[] {
-  const raw = data.tees;
+  // API wraps the course in a "course" key
+  const root = (data.course as Record<string, unknown> | undefined) ?? data;
+  const raw = root.tees;
   if (!raw) return [];
   if (Array.isArray(raw)) return raw as ApiTee[];
   if (typeof raw === 'object' && raw !== null) {
