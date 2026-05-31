@@ -12,15 +12,18 @@ interface HoleRow {
 
 type Nine = 'front' | 'back';
 
-// ── GolfCourseAPI shapes (field names vary by course) ────────────────────────
+// ── GolfCourseAPI shapes — field names vary by course/API version ─────────────
 interface ApiHole {
   par?: number;
   yardage?: number; yards?: number; distance?: number;
   handicap?: number; stroke_index?: number; hdcp?: number;
+  [k: string]: unknown;
 }
 interface ApiTee {
-  tee_name?: string; name?: string;
+  tee_name?: string; name?: string; tee_color?: string; color?: string;
+  total_yards?: number; par_total?: number;
   holes?: ApiHole[];
+  [k: string]: unknown;
 }
 interface ApiCourse {
   id: string;
@@ -28,12 +31,39 @@ interface ApiCourse {
   city?: string; state?: string;
 }
 
+// Handle every tee structure the API might return
+function extractApiTees(data: Record<string, unknown>): ApiTee[] {
+  const raw = data.tees;
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw as ApiTee[];
+  if (typeof raw === 'object' && raw !== null) {
+    const obj = raw as Record<string, unknown>;
+    // { male: [...], female: [...] }
+    if (Array.isArray(obj.male) || Array.isArray(obj.female)) {
+      return [
+        ...(Array.isArray(obj.male)   ? (obj.male   as ApiTee[]) : []),
+        ...(Array.isArray(obj.female) ? (obj.female as ApiTee[]) : []),
+      ];
+    }
+    // { Black: { holes:[...] }, Blue: { holes:[...] } }
+    return Object.entries(obj).map(([k, v]) => ({
+      tee_name: k,
+      ...((typeof v === 'object' && v !== null) ? (v as object) : {}),
+    })) as ApiTee[];
+  }
+  return [];
+}
+
+function teeName(t: ApiTee): string {
+  return t.tee_name ?? t.name ?? t.tee_color ?? t.color ?? '';
+}
+
 function mapHole(h: ApiHole, i: number): HoleRow {
   return {
     hole_number: i + 1,
-    par:      h.par ?? 4,
-    yards:    h.yardage ?? h.yards ?? h.distance ?? null,
-    handicap: h.handicap ?? h.stroke_index ?? h.hdcp ?? null,
+    par:      (h.par as number | undefined) ?? 4,
+    yards:    (h.yardage ?? h.yards ?? h.distance) as number | null ?? null,
+    handicap: (h.handicap ?? h.stroke_index ?? h.hdcp) as number | null ?? null,
   };
 }
 
@@ -70,7 +100,7 @@ export default function CourseHoleEditor({
   const [fetchStep, setFetchStep]         = useState<FetchStep>('idle');
   const [fetchError, setFetchError]       = useState('');
   const [searchResults, setSearchResults] = useState<ApiCourse[]>([]);
-  const [apiDetail, setApiDetail]         = useState<{ male: ApiTee[]; female: ApiTee[] } | null>(null);
+  const [apiTees, setApiTees]             = useState<ApiTee[]>([]);
   const [matchCount, setMatchCount]       = useState(0);
 
   useEffect(() => {
@@ -118,20 +148,17 @@ export default function CourseHoleEditor({
   async function startFetch() {
     setFetchStep('searching');
     setFetchError('');
-    const query = courseName || 'golf course';
-    const res   = await fetch(`/api/courses/scorecard?search=${encodeURIComponent(query)}`).catch(() => null);
+    const res = await fetch(`/api/courses/scorecard?search=${encodeURIComponent(courseName || 'golf')}`).catch(() => null);
     if (!res?.ok) {
-      setFetchError(res ? `API error ${res.status}` : 'Network error — is GOLF_COURSE_API_KEY set?');
-      setFetchStep('error');
-      return;
+      setFetchError(res ? `API error ${res.status}` : 'Network error — is GOLF_COURSE_API_KEY set in Vercel?');
+      setFetchStep('error'); return;
     }
     const data = await res.json();
     if (data.error) { setFetchError(data.error); setFetchStep('error'); return; }
     const courses: ApiCourse[] = data.courses ?? [];
     if (courses.length === 0) {
-      setFetchError('No courses found — add holes manually or check the course name.');
-      setFetchStep('error');
-      return;
+      setFetchError('No courses found — try adding holes manually.');
+      setFetchStep('error'); return;
     }
     if (courses.length === 1) {
       await loadDetail(courses[0].id);
@@ -146,48 +173,56 @@ export default function CourseHoleEditor({
     const res = await fetch(`/api/courses/scorecard?courseApiId=${encodeURIComponent(apiId)}`).catch(() => null);
     if (!res?.ok) { setFetchError('Failed to load course detail'); setFetchStep('error'); return; }
     const data = await res.json();
-    const detail = {
-      male:   (data.tees?.male   ?? []) as ApiTee[],
-      female: (data.tees?.female ?? []) as ApiTee[],
-    };
-    setApiDetail(detail);
-    const allApiTees = [...detail.male, ...detail.female];
+
+    const extracted = extractApiTees(data);
+    setApiTees(extracted);
+
     const matched = tees.filter(lt =>
-      allApiTees.some(at =>
-        (at.tee_name ?? at.name ?? '').toLowerCase() === lt.tee_name.toLowerCase()
-      )
+      extracted.some(at => teeName(at).toLowerCase() === lt.tee_name.toLowerCase())
     );
     setMatchCount(matched.length);
   }
 
+  // Import holes for all auto-matched tees
   async function importHoles() {
-    if (!apiDetail) return;
     setFetchStep('importing');
-    const allApiTees = [...apiDetail.male, ...apiDetail.female];
     for (const localTee of tees) {
-      const apiTee = allApiTees.find(at =>
-        (at.tee_name ?? at.name ?? '').toLowerCase() === localTee.tee_name.toLowerCase()
-      );
+      const apiTee = apiTees.find(at => teeName(at).toLowerCase() === localTee.tee_name.toLowerCase());
       if (!apiTee?.holes?.length) continue;
-      const holes = apiTee.holes.map(mapHole);
-      await fetch('/api/holes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teeId: localTee.id, holes }),
-      });
-      setHoleData(prev => ({ ...prev, [String(localTee.id)]: holes }));
-      setLoaded(prev => new Set(prev).add(localTee.id));
+      await saveApiHoles(localTee.id, apiTee.holes);
     }
     setFetchStep('done');
     setTimeout(() => setFetchStep('idle'), 2500);
   }
 
+  // Import a specific API tee into the currently selected local tee
+  async function importApiTeeIntoSelected(apiTee: ApiTee) {
+    if (!selectedTeeId || !apiTee.holes?.length) return;
+    setFetchStep('importing');
+    await saveApiHoles(selectedTeeId, apiTee.holes);
+    setFetchStep('done');
+    setTimeout(() => setFetchStep('idle'), 2500);
+  }
+
+  async function saveApiHoles(localTeeId: number, holes: ApiHole[]) {
+    const mapped = holes.map(mapHole);
+    await fetch('/api/holes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teeId: localTeeId, holes: mapped }),
+    });
+    setHoleData(prev => ({ ...prev, [String(localTeeId)]: mapped }));
+    setLoaded(prev => new Set(prev).add(localTeeId));
+  }
+
   function cancelFetch() {
     setFetchStep('idle');
     setSearchResults([]);
-    setApiDetail(null);
+    setApiTees([]);
     setFetchError('');
   }
+
+  const selectedTeeName = tees.find(t => t.id === selectedTeeId)?.tee_name ?? '';
 
   const cellSt: React.CSSProperties = { padding: '4px 2px', textAlign: 'center', fontSize: 12 };
   const inputSt: React.CSSProperties = {
@@ -201,10 +236,8 @@ export default function CourseHoleEditor({
       {/* ── Auto-fill banner ────────────────────────────────────────────── */}
       {fetchStep === 'idle' && (
         <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={startFetch}
-            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: 'pointer', color: 'var(--ink)' }}
-          >
+          <button onClick={startFetch}
+            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: 'pointer', color: 'var(--ink)' }}>
             🔍 Auto-fill from Golf Database
           </button>
         </div>
@@ -231,20 +264,41 @@ export default function CourseHoleEditor({
         </div>
       )}
 
-      {fetchStep === 'previewing' && apiDetail && (
+      {fetchStep === 'previewing' && (
         <div style={{ marginBottom: 10, background: 'var(--ice-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
-          <div style={{ fontSize: 12, marginBottom: 8 }}>
-            {matchCount > 0
-              ? <>✅ <strong>{matchCount}</strong> of {tees.length} tee boxes matched — holes 1–18 will be imported.</>
-              : <>⚠️ No tee names matched. API tees: {[...apiDetail.male, ...apiDetail.female].map(t => t.tee_name ?? t.name).join(', ')}.</>
-            }
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {matchCount > 0 && (
-              <button onClick={importHoles} className="btn" style={{ fontSize: 12, padding: '5px 12px' }}>✓ Import Holes</button>
-            )}
-            <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px' }}>Cancel</button>
-          </div>
+          {matchCount > 0 ? (
+            <>
+              <div style={{ fontSize: 12, marginBottom: 8 }}>
+                ✅ <strong>{matchCount}</strong> of {tees.length} tee boxes matched — holes 1–{apiTees[0]?.holes?.length ?? 18} will be imported.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={importHoles} className="btn" style={{ fontSize: 12, padding: '5px 12px' }}>✓ Import All Matched Tees</button>
+                <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px' }}>Cancel</button>
+              </div>
+            </>
+          ) : apiTees.length > 0 ? (
+            <>
+              <div style={{ fontSize: 12, marginBottom: 8 }}>
+                ⚠️ Tee names didn&apos;t auto-match. Click an API tee below to import its holes into the <strong>{selectedTeeName}</strong> tee:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {apiTees.map((at, i) => (
+                  <button key={i} onClick={() => importApiTeeIntoSelected(at)}
+                    disabled={!at.holes?.length}
+                    style={{ fontSize: 12, padding: '4px 10px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: at.holes?.length ? 'pointer' : 'not-allowed', color: 'var(--ink)', opacity: at.holes?.length ? 1 : 0.5 }}>
+                    {teeName(at) || `Tee ${i + 1}`}
+                    {at.holes?.length ? ` (${at.holes.length}h)` : ' (no holes)'}
+                  </button>
+                ))}
+              </div>
+              <button onClick={cancelFetch} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Cancel</button>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, marginBottom: 8 }}>⚠️ Course found but no hole data was returned by the API.</div>
+              <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px' }}>Cancel</button>
+            </>
+          )}
         </div>
       )}
 
