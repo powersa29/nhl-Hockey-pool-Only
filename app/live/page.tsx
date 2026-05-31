@@ -384,15 +384,25 @@ export default function LivePage() {
             </tr>
           </thead>
           <tbody>
-            {holes.length > 0 && (
-              <tr style={{ background: 'var(--ice-2)' }}>
-                <td style={{ ...stickyLabel, background: 'var(--ice-2)', color: 'var(--muted)', fontWeight: 600 }}>Par</td>
-                {holeRange.map(h => (
-                  <td key={h} style={{ ...cellSt, fontWeight: 700 }}>{holeMap.get(h)?.par ?? '—'}</td>
-                ))}
-                <td style={{ ...cellSt, fontWeight: 800, borderLeft: '2px solid var(--line)' }}>{totalCoursePar || '—'}</td>
-              </tr>
-            )}
+            {/* Par row — always shown; values filled once hole data loads */}
+            <tr style={{ background: 'var(--ice-2)' }}>
+              <td style={{ ...stickyLabel, background: 'var(--ice-2)', color: 'var(--muted)', fontWeight: 600 }}>Par</td>
+              {holeRange.map((h, i) => {
+                const par = holeMap.get(h)?.par;
+                const isActive = !forDone && i === currentHole;
+                return (
+                  <td key={h} style={{
+                    ...cellSt, fontWeight: 700,
+                    color: par == null ? 'var(--muted)' : isActive ? 'var(--green)' : 'var(--ink)',
+                  }}>
+                    {par ?? '—'}
+                  </td>
+                );
+              })}
+              <td style={{ ...cellSt, fontWeight: 800, borderLeft: '2px solid var(--line)', color: totalCoursePar ? 'var(--ink)' : 'var(--muted)' }}>
+                {totalCoursePar || '—'}
+              </td>
+            </tr>
             {hasYards && (
               <tr>
                 <td style={{ ...stickyLabel, color: 'var(--muted)', fontWeight: 600 }}>Yds</td>
