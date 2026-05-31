@@ -4,7 +4,7 @@ const BASE = 'https://api.golfcourseapi.com/v1';
 
 function headers() {
   return {
-    Authorization: process.env.GOLF_COURSE_API_KEY ?? '',
+    Authorization: `Key ${process.env.GOLF_COURSE_API_KEY ?? ''}`,
     'Content-Type': 'application/json',
   };
 }
