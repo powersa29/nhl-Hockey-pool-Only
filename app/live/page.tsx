@@ -140,6 +140,21 @@ export default function LivePage() {
       .then(data => setAllHoles(Array.isArray(data) ? data : []));
   }, [teeId]);
 
+  // Auto-fetch from Golf Course API when DB has no holes for this tee
+  useEffect(() => {
+    if (allHoles.length > 0 || !teeId || !courseId || courses.length === 0) return;
+    const c = courses.find(cx => cx.id === Number(courseId));
+    const t = c?.tees.find(tx => tx.id === Number(teeId));
+    if (!c || !t) return;
+    const params = new URLSearchParams({
+      teeId, courseName: c.name, teeName: t.tee_name, slope: String(t.slope_rating),
+    });
+    fetch(`/api/courses/auto-holes?${params}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data) && data.length > 0) setAllHoles(data); })
+      .catch(() => {});
+  }, [allHoles.length, teeId, courseId, courses.length]);
+
   useEffect(() => {
     const stop = () => {
       if (sendTimerRef.current) clearInterval(sendTimerRef.current);
