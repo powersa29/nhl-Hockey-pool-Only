@@ -102,6 +102,7 @@ export default function CourseHoleEditor({
   const [searchResults, setSearchResults] = useState<ApiCourse[]>([]);
   const [apiTees, setApiTees]             = useState<ApiTee[]>([]);
   const [matchCount, setMatchCount]       = useState(0);
+  const [rawData, setRawData]             = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (!selectedTeeId || loaded.has(selectedTeeId)) return;
@@ -173,6 +174,7 @@ export default function CourseHoleEditor({
     const res = await fetch(`/api/courses/scorecard?courseApiId=${encodeURIComponent(apiId)}`).catch(() => null);
     if (!res?.ok) { setFetchError('Failed to load course detail'); setFetchStep('error'); return; }
     const data = await res.json();
+    setRawData(data);
 
     const extracted = extractApiTees(data);
     setApiTees(extracted);
@@ -220,6 +222,7 @@ export default function CourseHoleEditor({
     setSearchResults([]);
     setApiTees([]);
     setFetchError('');
+    setRawData(null);
   }
 
   const selectedTeeName = tees.find(t => t.id === selectedTeeId)?.tee_name ?? '';
@@ -295,8 +298,11 @@ export default function CourseHoleEditor({
             </>
           ) : (
             <>
-              <div style={{ fontSize: 12, marginBottom: 8 }}>⚠️ Course found but no hole data was returned by the API.</div>
-              <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px' }}>Cancel</button>
+              <div style={{ fontSize: 12, marginBottom: 8 }}>⚠️ Course found but no hole data returned. Raw API structure:</div>
+              <pre style={{ fontSize: 10, background: 'var(--chip)', borderRadius: 4, padding: '6px 8px', overflowX: 'auto', maxHeight: 160, color: 'var(--ink)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                {JSON.stringify(rawData, null, 2).slice(0, 1200)}
+              </pre>
+              <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px', marginTop: 8 }}>Cancel</button>
             </>
           )}
         </div>
