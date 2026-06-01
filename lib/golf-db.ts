@@ -66,6 +66,14 @@ export interface StandingRow {
   rank: number;
 }
 
+export interface WeeklyWinner {
+  league: League;
+  player: Player;
+  net: number;
+  gross: number;
+  pointsAwarded: number;
+}
+
 export interface SeasonStandingRow {
   player: Player;
   points: number;
@@ -338,4 +346,39 @@ export async function getSeasonStandings(): Promise<SeasonStandingRow[]> {
 
   rows.forEach((r, i) => { r.rank = i + 1; });
   return rows;
+}
+
+// ── Weekly Winners ─────────────────────────────────────────────────────────────
+
+export async function getWeeklyWinners(): Promise<WeeklyWinner[]> {
+  const leagues = await getLeagues();
+  const currentStart = toDateStr(weekBounds().start);
+  const pastLeagues = leagues.filter(l => l.start_date < currentStart);
+
+  const winners = (
+    await Promise.all(
+      pastLeagues.map(async l => {
+        const standing = await getStandings(l.id);
+        const active = standing.filter(r => r.bestNet !== null);
+        const top = active[0];
+        if (!top) return null;
+        const bestRound = top.rounds.reduce<Round | null>((best, r) => {
+          if (!best) return r;
+          const n = netScore(r.gross_score, top.player.handicap_index, r.golf_tees?.slope_rating ?? 113);
+          const bn = netScore(best.gross_score, top.player.handicap_index, best.golf_tees?.slope_rating ?? 113);
+          return n < bn ? r : best;
+        }, null);
+        return {
+          league: l,
+          player: top.player,
+          net: top.bestNet!,
+          gross: bestRound?.gross_score ?? 0,
+          pointsAwarded: WEEK_POINTS[0],
+        } satisfies WeeklyWinner;
+      }),
+    )
+  ).filter((w): w is WeeklyWinner => w !== null);
+
+  winners.sort((a, b) => b.league.start_date.localeCompare(a.league.start_date));
+  return winners;
 }

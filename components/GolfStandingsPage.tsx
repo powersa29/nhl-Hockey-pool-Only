@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { League, StandingRow, SeasonStandingRow } from '@/lib/golf-db';
+import type { League, StandingRow, SeasonStandingRow, WeeklyWinner } from '@/lib/golf-db';
 import { weekLabel } from '@/lib/golf-scoring';
 import LiveScoreboard from './LiveScoreboard';
 
@@ -11,6 +11,7 @@ interface Props {
   allLeagues: League[];
   initialStandings: StandingRow[];
   initialSeasonStandings: SeasonStandingRow[];
+  weeklyWinners: WeeklyWinner[];
   stats: { playersWithRounds: number; totalRounds: number; totalPlayers: number };
   initialLabel: string;
 }
@@ -18,9 +19,9 @@ interface Props {
 type View = 'season' | number;
 
 export default function GolfStandingsPage({
-  currentLeague, allLeagues, initialStandings, initialSeasonStandings, stats, initialLabel,
+  currentLeague, allLeagues, initialStandings, initialSeasonStandings, weeklyWinners, stats, initialLabel,
 }: Props) {
-  const [view, setView] = useState<View>('season');
+  const [view, setView] = useState<View>(currentLeague.id);
   const [weekStandings, setWeekStandings] = useState<StandingRow[]>(initialStandings);
   const [weekLabel_, setWeekLabel] = useState(initialLabel);
   const [seasonStandings, setSeasonStandings] = useState<SeasonStandingRow[]>(initialSeasonStandings);
@@ -74,34 +75,71 @@ export default function GolfStandingsPage({
 
       <LiveScoreboard />
 
+      {/* Weekly Champions shelf */}
+      {weeklyWinners.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header" style={{ marginBottom: 10 }}>
+            <h2>🏆 Weekly Champions</h2>
+            <span className="tag green">{weeklyWinners.length} week{weeklyWinners.length !== 1 ? 's' : ''} played</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {weeklyWinners.map(w => (
+              <div key={w.league.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 12px', background: 'var(--ice-2)',
+                border: '1.5px solid var(--line)', borderRadius: 'var(--radius)',
+              }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'var(--green-dark)', color: 'white',
+                  display: 'grid', placeItems: 'center', fontSize: 16, flexShrink: 0,
+                }}>
+                  🥇
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{w.player.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{weekLabel(w.league.start_date)}</div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--green)' }}>
+                    {w.net} net
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>+{w.pointsAwarded} pts</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <div className="card-header">
           <h2>{isSeason ? 'Season Standings' : weekLabel_}</h2>
-          <span className="tag green">{isSeason ? '2026 Season' : 'This Week'}</span>
+          <span className="tag green">{isSeason ? '2026 Season' : view === currentLeague.id ? 'This Week' : 'Past Week'}</span>
         </div>
 
         <div className="week-selector">
-          <button className={`week-pill ${isSeason ? 'active' : ''}`} onClick={switchToSeason}>
-            Season
-          </button>
           {allLeagues.map(l => (
             <button
               key={l.id}
               className={`week-pill ${view === l.id ? 'active' : ''}`}
               onClick={() => switchToWeek(l.id)}
             >
-              {weekLabel(l.start_date)}
+              {l.id === currentLeague.id ? '⛳ This Week' : weekLabel(l.start_date)}
             </button>
           ))}
+          <button className={`week-pill ${isSeason ? 'active' : ''}`} onClick={switchToSeason}>
+            Season Pts
+          </button>
         </div>
 
         {loading ? (
           <div className="empty-state">Loading…</div>
         ) : isSeason ? (
           <SeasonTable standings={seasonStandings} />
-        ) : weekStandings.length === 0 ? (
+        ) : weekStandings.every(r => r.roundsPlayed === 0) ? (
           <div className="empty-state">
-            No rounds yet — <Link href="/join" style={{ color: 'var(--green)' }}>join the league</Link> to get started.
+            No rounds yet this week — <Link href="/live" style={{ color: 'var(--green)' }}>get on course</Link> to start.
           </div>
         ) : (
           <WeekTable standings={weekStandings} />
