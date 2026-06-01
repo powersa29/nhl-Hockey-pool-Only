@@ -43,28 +43,25 @@ function timeAgo(ts: string) {
   return `${Math.floor(s / 3600)}h ago`;
 }
 
-// Par-relative score buttons: always start from 1 (ace/hole-in-one) up to Triple + More
+// Score buttons: 1 through par+6 (max 12), all direct-tap — no spinner/More mode
 function getScoreBtns(par: number | null) {
-  if (!par) {
-    return [1,2,3,4,5,6,7,8].map(n => ({ n, label: n === 1 ? 'Ace' : '', isMore: false }))
-      .concat([{ n: 9, label: 'More', isMore: true }]);
-  }
-  const btns: { n: number; label: string; isMore: boolean }[] = [];
-  for (let d = -(par - 1); d <= 3; d++) {
-    btns.push({ n: par + d, label: SCORE_NAMES[d] ?? '', isMore: false });
-  }
-  btns.push({ n: par + 4, label: 'More', isMore: true });
-  return btns;
+  const max = par ? Math.min(12, par + 6) : 10;
+  return Array.from({ length: max }, (_, i) => {
+    const n = i + 1;
+    const d = par != null ? n - par : null;
+    const label = d != null && SCORE_NAMES[d] ? SCORE_NAMES[d] : '';
+    return { n, label };
+  });
 }
 
-function btnBg(n: number, par: number | null, isMore: boolean): string {
-  if (isMore || !par) return 'var(--chip)';
+function btnBg(n: number, par: number | null): string {
+  if (!par) return 'var(--chip)';
   const d = n - par;
-  if (d <= -2) return '#1d4ed8';  // eagle / albatross / condor: blue
-  if (d === -1) return '#15803d'; // birdie: green
-  if (d === 0)  return 'var(--green-dark)'; // par
-  if (d === 1)  return '#92400e'; // bogey: amber
-  return '#991b1b'; // double+: red
+  if (d <= -2) return '#1d4ed8';
+  if (d === -1) return '#15803d';
+  if (d === 0)  return 'var(--green-dark)';
+  if (d === 1)  return '#92400e';
+  return '#991b1b';
 }
 
 // Score bubble (colored circle/square like a real scorecard)
@@ -110,8 +107,6 @@ export default function LivePage() {
   const [currentHole, setCurrentHole] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [flashLabel, setFlashLabel] = useState('');
-  const [moreMode, setMoreMode]     = useState(false);
-  const [otherScore, setOtherScore] = useState(8);
 
   const watchIdRef  = useRef<number | null>(null);
   const sendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -286,7 +281,7 @@ export default function LivePage() {
     liveRoundRef.current = roundData.id;
     setScores([]);
     setCurrentHole(0);
-    setMoreMode(false);
+
     setMapCollapsed(true);
     setStep('playing');
     setStarting(false);
@@ -324,7 +319,6 @@ export default function LivePage() {
     }
     const next = [...scores, score];
     setScores(next);
-    setMoreMode(false);
     if (liveRoundRef.current) {
       fetch('/api/live-scoring', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -339,7 +333,7 @@ export default function LivePage() {
     const prev = scores.slice(0, -1);
     setScores(prev);
     setCurrentHole(h => Math.max(0, h - 1));
-    setMoreMode(false);
+
     if (step === 'done') setStep('playing');
     if (liveRoundRef.current) {
       fetch('/api/live-scoring', {
@@ -635,25 +629,22 @@ export default function LivePage() {
             )}
           </div>
 
-          {!moreMode ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {scoreBtns.map(btn => (
                 <button
                   key={btn.n}
-                  onClick={() => btn.isMore ? (setMoreMode(true), setOtherScore((currentHolePar ?? 4) + 4)) : enterScore(btn.n)}
+                  onClick={() => enterScore(btn.n)}
                   style={{
                     flex: '1 1 0', minWidth: 44, height: 60, borderRadius: 'var(--radius)',
                     border: '2px solid var(--line)',
-                    background: btnBg(btn.n, currentHolePar, btn.isMore),
-                    color: (btn.isMore || !currentHolePar) ? 'var(--ink)' : 'white',
+                    background: btnBg(btn.n, currentHolePar),
+                    color: !currentHolePar ? 'var(--ink)' : 'white',
                     cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                   }}
                 >
-                  <span style={{ fontSize: btn.isMore ? 16 : 22, fontWeight: 800, lineHeight: 1 }}>
-                    {btn.isMore ? '…' : btn.n}
-                  </span>
+                  <span style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{btn.n}</span>
                   {btn.label && (
                     <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.5, opacity: 0.85, textTransform: 'uppercase' }}>
                       {btn.label}
@@ -662,15 +653,6 @@ export default function LivePage() {
                 </button>
               ))}
             </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', padding: '8px 0' }}>
-              <button onClick={() => setOtherScore(s => Math.max(1, s - 1))} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid var(--line)', background: 'var(--chip)', fontSize: 24, fontWeight: 800, cursor: 'pointer' }}>−</button>
-              <div style={{ fontSize: 52, fontWeight: 900, minWidth: 60, textAlign: 'center', lineHeight: 1 }}>{otherScore}</div>
-              <button onClick={() => setOtherScore(s => s + 1)} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid var(--line)', background: 'var(--chip)', fontSize: 24, fontWeight: 800, cursor: 'pointer' }}>+</button>
-              <button onClick={() => { enterScore(otherScore); }} className="btn" style={{ height: 44, padding: '0 16px' }}>✓</button>
-              <button onClick={() => setMoreMode(false)} className="btn ghost" style={{ height: 44, padding: '0 14px' }}>✕</button>
-            </div>
-          )}
         </div>
 
         {/* Collapsible map + group */}
