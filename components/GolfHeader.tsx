@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import NotifyBell from './NotifyBell';
 
 const NAV = [
   { href: '/',        label: 'Standings' },
@@ -44,6 +45,7 @@ export default function GolfHeader() {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <NotifyBell />
         <button
           className="theme-toggle"
           onClick={toggleTheme}
