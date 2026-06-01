@@ -105,10 +105,10 @@ export default function NotifyBell({ playerId }: { playerId?: number }) {
 // ── Full labeled row for settings sections ────────────────────────────────────
 export function NotifyRow({ playerId }: { playerId?: number }) {
   const { status, loading, subscribe, unsubscribe } = useNotifyStatus();
-  if (status === 'unsupported') return null;
 
   const isOn = status === 'subscribed';
   const isDenied = status === 'denied';
+  const isUnsupported = status === 'unsupported';
 
   return (
     <div style={{
@@ -130,8 +130,10 @@ export function NotifyRow({ playerId }: { playerId?: number }) {
         <div>
           <div style={{ fontWeight: 600, fontSize: 14 }}>Monday notifications</div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
-            {isDenied
-              ? 'Blocked in browser settings — tap to fix'
+            {isUnsupported
+              ? 'Not supported in this browser'
+              : isDenied
+              ? 'Blocked in browser settings — enable to turn on'
               : isOn
               ? 'You\'ll get a ping every Monday morning'
               : 'Get a nudge every Monday to kick off the week'}
@@ -139,8 +141,10 @@ export function NotifyRow({ playerId }: { playerId?: number }) {
         </div>
       </div>
 
-      {isDenied ? (
-        <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>Blocked</span>
+      {isUnsupported || isDenied ? (
+        <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
+          {isUnsupported ? 'Unavailable' : 'Blocked'}
+        </span>
       ) : (
         <button
           onClick={isOn ? unsubscribe : () => subscribe(playerId)}
