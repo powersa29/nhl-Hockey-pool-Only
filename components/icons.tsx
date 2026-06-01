@@ -1,4 +1,41 @@
 // Custom SVGs for golf-specific concepts + re-exports from lucide-react
+
+// Hotdog with a golf flag sticking out — the Glizzy Golf mascot
+export function GlizzyIcon({
+  size = 24, className = '',
+}: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 32 32" fill="none"
+      xmlns="http://www.w3.org/2000/svg" className={className}
+      aria-hidden="true"
+    >
+      {/* Top bun */}
+      <path
+        d="M7 13 C7 9.5 10 7 16 7 C22 7 25 9.5 25 13 L24 14 L8 14 Z"
+        fill="#f5c069" stroke="#d4943a" strokeWidth="0.6"
+      />
+      {/* Bottom bun */}
+      <path
+        d="M8 18 L24 18 L25 19 C25 22.5 22 25 16 25 C10 25 7 22.5 7 19 Z"
+        fill="#f5c069" stroke="#d4943a" strokeWidth="0.6"
+      />
+      {/* Frank / sausage */}
+      <rect x="6" y="14" width="20" height="4" rx="2" fill="#c0392b" />
+      {/* Highlight on frank */}
+      <path d="M8 15.5 Q16 15 24 15.5" stroke="#e74c3c" strokeWidth="0.7" strokeLinecap="round" opacity="0.6" />
+      {/* Mustard squiggle */}
+      <path
+        d="M9 13.5 Q11 11.5 13 13.5 Q15 15.5 17 13.5 Q19 11.5 21 13.5"
+        stroke="#f0b429" strokeWidth="1.1" strokeLinecap="round" fill="none"
+      />
+      {/* Golf flag pole */}
+      <line x1="19" y1="4" x2="19" y2="14" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.95" />
+      {/* Golf flag */}
+      <path d="M19 4.5 L24 6.5 L19 8.5 Z" fill="white" opacity="0.95" />
+    </svg>
+  );
+}
 export {
   Sun, Moon, Bell, BellOff, Search, MapPin, Trophy,
   Download, Flag, Activity, CheckCircle, AlertCircle,

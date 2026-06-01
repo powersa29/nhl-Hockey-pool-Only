@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import NotifyBell from './NotifyBell';
-import { GolfPin, Sun, Moon } from './icons';
+import { GlizzyIcon, Sun, Moon } from './icons';
 
 const NAV = [
   { href: '/',        label: 'Standings' },
@@ -40,7 +40,7 @@ export default function GolfHeader() {
     <header className="header">
       <div className="brand">
         <div className="brand-mark">
-          <GolfPin size={22} color="white" />
+          <GlizzyIcon size={28} />
         </div>
         <div>
           <div className="brand-name">Glizzy Golf League</div>
