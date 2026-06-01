@@ -80,10 +80,12 @@ export default function LiveScoreboard() {
       <div className="card-header" style={{ marginBottom: 14 }}>
         <h2 style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 7 }}><Activity size={16} /> Rounds in Progress</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="tag green">
-            <span className="pulse-dot" style={{ background: 'white' }} />
-            {rounds.length} live
-          </span>
+          <Link href="/live" style={{ textDecoration: 'none' }}>
+            <span className="tag green" style={{ cursor: 'pointer' }}>
+              <span className="pulse-dot" style={{ background: 'white' }} />
+              {rounds.length} live
+            </span>
+          </Link>
           <Link href="/live">
             <button className="btn ghost" style={{ padding: '5px 10px', fontSize: 12 }}>+ Join</button>
           </Link>
