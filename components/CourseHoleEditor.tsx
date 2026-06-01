@@ -29,7 +29,12 @@ interface ApiCourse {
   id: string;
   club_name?: string; course_name?: string;
   city?: string; state?: string;
+  location?: { city?: string; state?: string; address?: string; country?: string };
 }
+
+function apiCity(c: ApiCourse)  { return c.city  ?? c.location?.city  ?? ''; }
+function apiState(c: ApiCourse) { return c.state ?? c.location?.state ?? ''; }
+function apiName(c: ApiCourse)  { return c.club_name || c.course_name || c.id; }
 
 // Handle every tee structure the API might return
 function extractApiTees(data: Record<string, unknown>): ApiTee[] {
@@ -82,13 +87,15 @@ function fillHoles(existing: HoleRow[], startHole: number): HoleRow[] {
   });
 }
 
-type FetchStep = 'idle' | 'searching' | 'selecting' | 'previewing' | 'importing' | 'done' | 'error';
+type FetchStep = 'idle' | 'searching' | 'manual' | 'selecting' | 'previewing' | 'importing' | 'done' | 'error';
 
 export default function CourseHoleEditor({
-  tees, courseName = '',
+  tees, courseName = '', courseCity = '', courseState = '',
 }: {
   tees: Tee[];
   courseName?: string;
+  courseCity?: string;
+  courseState?: string;
 }) {
   const [selectedTeeId, setSelectedTeeId] = useState<number | null>(tees[0]?.id ?? null);
   const [nine, setNine]                   = useState<Nine>('front');
@@ -105,6 +112,7 @@ export default function CourseHoleEditor({
   const [apiTees, setApiTees]             = useState<ApiTee[]>([]);
   const [matchCount, setMatchCount]       = useState(0);
   const [rawData, setRawData]             = useState<Record<string, unknown> | null>(null);
+  const [manualQuery, setManualQuery]     = useState('');
 
   useEffect(() => {
     if (!selectedTeeId || loaded.has(selectedTeeId)) return;
@@ -148,20 +156,35 @@ export default function CourseHoleEditor({
   }
 
   // ── Auto-fill from GolfCourseAPI ──────────────────────────────────────────
-  async function startFetch() {
+  async function doSearch(query: string): Promise<ApiCourse[]> {
+    const res = await fetch(`/api/courses/scorecard?search=${encodeURIComponent(query)}`).catch(() => null);
+    if (!res?.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.courses) ? data.courses : [];
+  }
+
+  async function startFetch(customQuery?: string) {
     setFetchStep('searching');
     setFetchError('');
-    const res = await fetch(`/api/courses/scorecard?search=${encodeURIComponent(courseName || 'golf')}`).catch(() => null);
-    if (!res?.ok) {
-      setFetchError(res ? `API error ${res.status}` : 'Network error — is GOLF_COURSE_API_KEY set in Vercel?');
-      setFetchStep('error'); return;
+
+    // Build progressive search attempts
+    const base = customQuery ?? courseName;
+    const stripped = base
+      .replace(/\s+(golf\s+course|golf\s+club|golf\s+links|golf\s+center|country\s+club|golf\s+&\s+country\s+club)\s*$/i, '')
+      .trim();
+    const words2 = (stripped || base).split(/\s+/).slice(0, 2).join(' ');
+    const attempts = [...new Set([base, stripped, words2].filter(Boolean))];
+
+    let courses: ApiCourse[] = [];
+    for (const q of attempts) {
+      courses = await doSearch(q);
+      if (courses.length > 0) break;
     }
-    const data = await res.json();
-    if (data.error) { setFetchError(data.error); setFetchStep('error'); return; }
-    const courses: ApiCourse[] = data.courses ?? [];
+
     if (courses.length === 0) {
-      setFetchError('No courses found — try adding holes manually.');
-      setFetchStep('error'); return;
+      setManualQuery(stripped || base);
+      setFetchStep('manual');
+      return;
     }
     if (courses.length === 1) {
       await loadDetail(courses[0].id);
@@ -169,6 +192,11 @@ export default function CourseHoleEditor({
       setSearchResults(courses);
       setFetchStep('selecting');
     }
+  }
+
+  async function runManualSearch() {
+    if (!manualQuery.trim()) return;
+    await startFetch(manualQuery.trim());
   }
 
   async function loadDetail(apiId: string) {
@@ -225,6 +253,7 @@ export default function CourseHoleEditor({
     setApiTees([]);
     setFetchError('');
     setRawData(null);
+    setManualQuery('');
   }
 
   const selectedTeeName = tees.find(t => t.id === selectedTeeId)?.tee_name ?? '';
@@ -241,9 +270,9 @@ export default function CourseHoleEditor({
       {/* ── Auto-fill banner ────────────────────────────────────────────── */}
       {fetchStep === 'idle' && (
         <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={startFetch}
+          <button onClick={() => startFetch()}
             style={{ fontSize: 11, padding: '3px 10px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: 'pointer', color: 'var(--ink)' }}>
-            🔍 Auto-fill from Golf Database
+            📋 Pull in scorecard
           </button>
         </div>
       )}
@@ -254,18 +283,47 @@ export default function CourseHoleEditor({
         </div>
       )}
 
+      {fetchStep === 'manual' && (
+        <div style={{ marginBottom: 10, background: 'var(--ice-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+            Couldn&apos;t find &quot;{courseName}&quot; — try a different search:
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              type="text"
+              value={manualQuery}
+              onChange={e => setManualQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && runManualSearch()}
+              placeholder="e.g. Diamond Hawk"
+              style={{ flex: 1, padding: '5px 8px', fontSize: 12, border: '1.5px solid var(--line)', borderRadius: 4, background: 'var(--chip)', color: 'var(--ink)' }}
+              autoFocus
+            />
+            <button onClick={runManualSearch} className="btn" style={{ fontSize: 12, padding: '5px 12px' }}>Search</button>
+            <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 10px' }}>✕</button>
+          </div>
+          {courseCity && courseState && (
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              Looking for: {courseCity}, {courseState}
+            </div>
+          )}
+        </div>
+      )}
+
       {fetchStep === 'selecting' && (
         <div style={{ marginBottom: 10, background: 'var(--ice-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
           <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Multiple matches — pick the right one:</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {searchResults.slice(0, 8).map(c => (
+            {searchResults.slice(0, 10).map(c => (
               <button key={c.id} onClick={() => loadDetail(c.id)}
                 style={{ textAlign: 'left', fontSize: 12, padding: '5px 8px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: 'pointer', color: 'var(--ink)' }}>
-                {c.club_name || c.course_name}{c.city && c.state ? ` — ${c.city}, ${c.state}` : ''}
+                {apiName(c)}{(apiCity(c) || apiState(c)) ? ` — ${[apiCity(c), apiState(c)].filter(Boolean).join(', ')}` : ''}
               </button>
             ))}
           </div>
-          <button onClick={cancelFetch} style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Cancel</button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+            <button onClick={() => { setFetchStep('manual'); setManualQuery(''); }} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>🔍 Search again</button>
+            <button onClick={cancelFetch} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Cancel</button>
+          </div>
         </div>
       )}
 
@@ -446,7 +504,7 @@ export default function CourseHoleEditor({
         </div>
       ) : loaded.has(selectedTeeId!) ? (
         <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
-          No {nine === 'front' ? 'Front 9' : 'Back 9'} data yet — click &quot;Auto-fill&quot; above or &quot;+ Add Holes&quot; to enter manually.
+          No {nine === 'front' ? 'Front 9' : 'Back 9'} data yet — click &quot;Pull in scorecard&quot; above or &quot;+ Add Holes&quot; to enter manually.
         </div>
       ) : (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</div>

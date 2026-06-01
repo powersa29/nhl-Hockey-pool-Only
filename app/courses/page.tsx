@@ -167,7 +167,7 @@ export default function CoursesPage() {
                     </div>
 
                     {/* Hole scorecard */}
-                    <CourseHoleEditor tees={course.tees} courseName={course.name} />
+                    <CourseHoleEditor tees={course.tees} courseName={course.name} courseCity={course.city} courseState={course.state} />
 
                     {/* Course map */}
                     {coordsMap[course.id] ? (
