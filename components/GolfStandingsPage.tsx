@@ -7,6 +7,7 @@ import Link from 'next/link';
 import type { League, StandingRow, WeeklyWinner } from '@/lib/golf-db';
 import { weekLabel } from '@/lib/golf-scoring';
 import LiveScoreboard from './LiveScoreboard';
+import { NotifyRow } from './NotifyBell';
 import { GolfPin, TrophyCup, Medal } from './icons';
 
 interface Props {
@@ -142,7 +143,11 @@ export default function GolfStandingsPage({
         )}
       </div>
 
-      <div style={{ marginTop: 14, fontSize: 12, color: 'var(--muted)', textAlign: 'right' }}>
+      <div style={{ marginTop: 16 }}>
+        <NotifyRow />
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)', textAlign: 'right' }}>
         Net = Gross − Course Handicap (9 holes)
       </div>
     </>
