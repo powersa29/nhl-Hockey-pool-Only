@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Tee } from '@/lib/golf-db';
+import { Download, Search } from './icons';
 
 interface HoleRow {
   hole_number: number;
@@ -272,7 +273,7 @@ export default function CourseHoleEditor({
         <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={() => startFetch()}
             style={{ fontSize: 11, padding: '3px 10px', borderRadius: 4, border: '1.5px solid var(--line)', background: 'var(--chip)', cursor: 'pointer', color: 'var(--ink)' }}>
-            📋 Pull in scorecard
+            <Download size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Pull in scorecard
           </button>
         </div>
       )}
@@ -321,7 +322,7 @@ export default function CourseHoleEditor({
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-            <button onClick={() => { setFetchStep('manual'); setManualQuery(''); }} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>🔍 Search again</button>
+            <button onClick={() => { setFetchStep('manual'); setManualQuery(''); }} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>Search again</button>
             <button onClick={cancelFetch} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Cancel</button>
           </div>
         </div>

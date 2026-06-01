@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Bell, BellOff } from './icons';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
 
@@ -81,7 +82,7 @@ export default function NotifyBell({ playerId }: { playerId?: number }) {
         title="Turn off Monday notifications"
         style={{ opacity: loading ? 0.6 : 1 }}
       >
-        🔔
+        <Bell size={16} />
       </button>
     );
   }
@@ -91,9 +92,9 @@ export default function NotifyBell({ playerId }: { playerId?: number }) {
       <button
         className="theme-toggle"
         title="Notifications blocked — enable in browser settings"
-        style={{ opacity: 0.4, cursor: 'default' }}
+        style={{ opacity: 0.35, cursor: 'default' }}
       >
-        🔕
+        <BellOff size={16} />
       </button>
     );
   }
@@ -106,7 +107,7 @@ export default function NotifyBell({ playerId }: { playerId?: number }) {
       title="Get Monday morning notifications"
       style={{ opacity: loading ? 0.6 : 1 }}
     >
-      🔕
+      <BellOff size={16} />
     </button>
   );
 }

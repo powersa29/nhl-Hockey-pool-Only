@@ -4,10 +4,11 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import NotifyBell from './NotifyBell';
+import { GolfPin, Sun, Moon } from './icons';
 
 const NAV = [
   { href: '/',        label: 'Standings' },
-  { href: '/live',    label: '⛳ On Course' },
+  { href: '/live',    label: 'On Course' },
   { href: '/record',  label: 'Record Round' },
   { href: '/courses', label: 'Courses' },
   { href: '/join',    label: 'Join' },
@@ -38,9 +39,11 @@ export default function GolfHeader() {
   return (
     <header className="header">
       <div className="brand">
-        <div className="brand-mark">⛳</div>
+        <div className="brand-mark">
+          <GolfPin size={22} color="white" />
+        </div>
         <div>
-          <div className="brand-name">Glizzy Golf League 🌭</div>
+          <div className="brand-name">Glizzy Golf League</div>
           <div className="brand-sub">Weekly 9-Hole Stroke Play</div>
         </div>
       </div>
@@ -51,7 +54,7 @@ export default function GolfHeader() {
           onClick={toggleTheme}
           title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {dark ? '☀️' : '🌙'}
+          {dark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
         <nav className="nav">
           {NAV.map(n => (

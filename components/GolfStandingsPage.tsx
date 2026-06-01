@@ -1,10 +1,13 @@
 'use client';
 
+'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import type { League, StandingRow, WeeklyWinner } from '@/lib/golf-db';
 import { weekLabel } from '@/lib/golf-scoring';
 import LiveScoreboard from './LiveScoreboard';
+import { GolfPin, TrophyCup, Medal } from './icons';
 
 interface Props {
   currentLeague: League;
@@ -41,7 +44,7 @@ export default function GolfStandingsPage({
       <section className="hero">
         <span className="hero-tag"><span className="pulse-dot" /> Live Standings</span>
         <h1 style={{ marginTop: 14 }}>
-          Weekly<br /><span className="accent">Golf League</span> <span style={{ fontSize: '0.7em' }}>🌭</span>
+          Weekly<br /><span className="accent">Golf League</span>
         </h1>
         <p className="hero-sub">
           9-hole stroke play, handicap-adjusted net scoring. Up to 4 rounds per week —
@@ -58,7 +61,7 @@ export default function GolfStandingsPage({
           )}
         </div>
         <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/live"><button className="btn" style={{ flex: '1 1 auto' }}>⛳ On Course</button></Link>
+          <Link href="/live"><button className="btn" style={{ flex: '1 1 auto', display: 'inline-flex', alignItems: 'center', gap: 7 }}><GolfPin size={16} color="white" /> On Course</button></Link>
           <Link href="/record" style={{ flex: '1 1 auto' }}><button className="btn ghost" style={{ width: '100%' }}>+ Record a Round</button></Link>
         </div>
       </section>
@@ -69,7 +72,7 @@ export default function GolfStandingsPage({
       {weeklyWinners.length > 0 && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-header" style={{ marginBottom: 10 }}>
-            <h2>🏆 Weekly Champions</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><TrophyCup size={20} color="var(--gold)" /> Weekly Champions</h2>
             <span className="tag green">{weeklyWinners.length} week{weeklyWinners.length !== 1 ? 's' : ''}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -87,7 +90,10 @@ export default function GolfStandingsPage({
                   display: 'grid', placeItems: 'center', fontSize: i === 0 ? 16 : 13,
                   fontWeight: 800, flexShrink: 0,
                 }}>
-                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+                  {i <= 2
+                    ? <Medal rank={(i + 1) as 1 | 2 | 3} size={28} />
+                    : <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 13, color: 'var(--muted)' }}>{i + 1}</span>
+                  }
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{w.player.name}</div>
@@ -117,7 +123,10 @@ export default function GolfStandingsPage({
               className={`week-pill ${view === l.id ? 'active' : ''}`}
               onClick={() => switchToWeek(l.id)}
             >
-              {l.id === currentLeague.id ? '⛳ This Week' : weekLabel(l.start_date)}
+              {l.id === currentLeague.id
+                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><GolfPin size={13} color="currentColor" /> This Week</span>
+                : weekLabel(l.start_date)
+              }
             </button>
           ))}
         </div>

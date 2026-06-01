@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Activity } from './icons';
 
 interface HolePar { hole_number: number; par: number; yards?: number | null }
 
@@ -77,7 +78,7 @@ export default function LiveScoreboard() {
   return (
     <div className="card live-scoreboard-card" style={{ marginBottom: 20 }}>
       <div className="card-header" style={{ marginBottom: 14 }}>
-        <h2 style={{ fontSize: 16 }}>⛳ Rounds in Progress</h2>
+        <h2 style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 7 }}><Activity size={16} /> Rounds in Progress</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="tag green">
             <span className="pulse-dot" style={{ background: 'white' }} />

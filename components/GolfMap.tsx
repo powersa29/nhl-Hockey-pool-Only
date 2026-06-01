@@ -64,7 +64,7 @@ export default function GolfMap({
       if (center) {
         L.marker([center.lat, center.lng], {
           icon: L.divIcon({
-            html: '<div style="font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))">⛳</div>',
+            html: '<div style="width:28px;height:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))"><svg viewBox=\'0 0 20 20\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'><line x1=\'6\' y1=\'2.5\' x2=\'6\' y2=\'17\' stroke=\'#15803d\' stroke-width=\'1.6\' stroke-linecap=\'round\'/><path d=\'M6 3.5 L15 7 L6 10.5 Z\' fill=\'#15803d\'/><ellipse cx=\'6\' cy=\'17.5\' rx=\'3.2\' ry=\'1.1\' fill=\'#15803d\' opacity=\'0.3\'/></svg></div>',
             className: '',
             iconSize: [28, 28],
             iconAnchor: [4, 28],

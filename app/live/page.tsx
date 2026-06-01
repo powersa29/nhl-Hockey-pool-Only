@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import type { Player, Course, Tee } from '@/lib/golf-db';
 import type { LivePin } from '@/components/GolfMap';
 import { courseHandicap9 } from '@/lib/golf-scoring';
+import { GolfPin, TrophyCup, MapPin, CheckCircle } from '@/components/icons';
 
 const GolfMap = dynamic(() => import('@/components/GolfMap'), { ssr: false });
 
@@ -505,7 +506,9 @@ export default function LivePage() {
   if (step === 'submitted') {
     return (
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px', textAlign: 'center' }}>
-        <div style={{ fontSize: 64 }}>🌭</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+          <CheckCircle size={56} color="var(--green)" strokeWidth={1.5} />
+        </div>
         <h2 style={{ marginTop: 12 }}>Round Submitted!</h2>
         <p style={{ color: 'var(--muted)' }}>{player?.name} · {course?.name} · {tee?.tee_name} Tees</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, margin: '20px 0' }}>
@@ -535,7 +538,7 @@ export default function LivePage() {
     return (
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 16px' }}>
         <div className="section-header" style={{ marginBottom: 16 }}>
-          <h2>Round Complete ⛳</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><TrophyCup size={20} color="var(--gold)" /> Round Complete</h2>
           <span className="tag green">9/9 holes</span>
         </div>
 
@@ -578,7 +581,7 @@ export default function LivePage() {
             {nine === 'back' && <span style={{ color: 'var(--muted)', marginLeft: 4 }}>· Back 9</span>}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {sharing && <span style={{ color: 'var(--green)', fontSize: 11 }}>📍 GPS</span>}
+            {sharing && <span style={{ color: 'var(--green)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}><MapPin size={11} /> GPS</span>}
             <span style={{ color: 'var(--muted)' }}>{scores.length}/9</span>
           </div>
         </div>
@@ -678,7 +681,7 @@ export default function LivePage() {
           {scores.length > 0 && <button className="btn ghost" style={{ flex: 1 }} onClick={undoLast}>← Undo</button>}
           <button className="btn danger" style={{ flex: scores.length > 0 ? 1 : undefined, width: scores.length === 0 ? '100%' : undefined }} onClick={stopEverything}>End Round</button>
         </div>
-        {geoError && <div className="error-banner" style={{ marginTop: 10, fontSize: 12 }}>📍 {geoError}</div>}
+        {geoError && <div className="error-banner" style={{ marginTop: 10, fontSize: 12 }}>{geoError}</div>}
       </div>
     );
   }
@@ -690,7 +693,7 @@ export default function LivePage() {
     <div>
       <div className="section-header">
         <div>
-          <h2>On Course 📍⛳</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><GolfPin size={20} color="var(--green-dark)" /> On Course</h2>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--muted)' }}>
             Share your GPS and score hole by hole — your group sees it all live.
           </p>
@@ -773,12 +776,12 @@ export default function LivePage() {
 
             {teeId && holes.length > 0 && (
               <div style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--ice-2)', borderRadius: 'var(--radius)', padding: '8px 10px' }}>
-                ⛳ {nine === 'front' ? 'Front 9' : 'Back 9'} · Par {totalCoursePar} · {holes.map(h => h.par).join('–')}
+                {nine === 'front' ? 'Front 9' : 'Back 9'} · Par {totalCoursePar} · {holes.map(h => h.par).join('–')}
               </div>
             )}
             {geoError && <div className="error-banner" style={{ marginTop: 0, fontSize: 12 }}>⚠️ {geoError}</div>}
             <button className="btn" onClick={startRound} disabled={starting || !playerId || !courseId || !teeId}>
-              {starting ? 'Starting…' : '⛳ Start Round'}
+              {starting ? 'Starting…' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><GolfPin size={15} color="white" />Start Round</span>}
             </button>
             <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>
               Shares your GPS and tracks scores on a live scorecard visible to the whole group.
