@@ -358,11 +358,15 @@ export default function CourseHoleEditor({
             </>
           ) : (
             <>
-              <div style={{ fontSize: 12, marginBottom: 8 }}>⚠️ Course found but no hole data returned. Raw API structure:</div>
-              <pre style={{ fontSize: 10, background: 'var(--chip)', borderRadius: 4, padding: '6px 8px', overflowX: 'auto', maxHeight: 160, color: 'var(--ink)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                {JSON.stringify(rawData, null, 2).slice(0, 1200)}
-              </pre>
-              <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px', marginTop: 8 }}>Cancel</button>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>No scorecard on file</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
+                This course is in the database but doesn&apos;t have hole-by-hole data yet.
+                Try searching for a different listing, or enter the holes manually below.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => { cancelFetch(); setFetchStep('manual'); setManualQuery(''); }} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px' }}>🔍 Try another search</button>
+                <button onClick={cancelFetch} className="btn ghost" style={{ fontSize: 12, padding: '5px 12px' }}>Enter manually</button>
+              </div>
             </>
           )}
         </div>
