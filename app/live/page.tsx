@@ -103,6 +103,7 @@ export default function LivePage() {
   const [geoError, setGeoError]     = useState('');
   const [starting, setStarting]     = useState(false);
   const [mapCollapsed, setMapCollapsed] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   const [allHoles, setAllHoles]     = useState<HoleData[]>([]);
   const [scores, setScores]         = useState<number[]>([]);
@@ -571,7 +572,17 @@ export default function LivePage() {
           {submitting ? 'Submitting…' : '✓ Submit Official Round'}
         </button>
         <button className="btn ghost" style={{ width: '100%', marginBottom: 10 }} onClick={undoLast}>← Edit Last Hole</button>
-        <button className="btn danger" style={{ width: '100%' }} onClick={stopEverything}>Discard & End</button>
+        {confirmEnd ? (
+          <div style={{ border: '1.5px solid var(--danger, #dc2626)', borderRadius: 'var(--radius)', padding: '12px 14px', background: 'color-mix(in oklab, #dc2626 6%, transparent)' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Discard this round?</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn ghost" style={{ flex: 1 }} onClick={() => setConfirmEnd(false)}>Cancel</button>
+              <button className="btn danger" style={{ flex: 1 }} onClick={stopEverything}>Yes, Discard</button>
+            </div>
+          </div>
+        ) : (
+          <button className="btn danger" style={{ width: '100%' }} onClick={() => setConfirmEnd(true)}>Discard & End</button>
+        )}
       </div>
     );
   }
@@ -687,10 +698,20 @@ export default function LivePage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          {scores.length > 0 && <button className="btn ghost" style={{ flex: 1 }} onClick={undoLast}>← Undo</button>}
-          <button className="btn danger" style={{ flex: scores.length > 0 ? 1 : undefined, width: scores.length === 0 ? '100%' : undefined }} onClick={stopEverything}>End Round</button>
-        </div>
+        {confirmEnd ? (
+          <div style={{ border: '1.5px solid var(--danger, #dc2626)', borderRadius: 'var(--radius)', padding: '12px 14px', background: 'color-mix(in oklab, #dc2626 6%, transparent)' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>End this round?</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn ghost" style={{ flex: 1 }} onClick={() => setConfirmEnd(false)}>Keep Playing</button>
+              <button className="btn danger" style={{ flex: 1 }} onClick={stopEverything}>Yes, End Round</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 8 }}>
+            {scores.length > 0 && <button className="btn ghost" style={{ flex: 1 }} onClick={undoLast}>← Undo</button>}
+            <button className="btn danger" style={{ flex: scores.length > 0 ? 1 : undefined, width: scores.length === 0 ? '100%' : undefined }} onClick={() => setConfirmEnd(true)}>End Round</button>
+          </div>
+        )}
         {geoError && <div className="error-banner" style={{ marginTop: 10, fontSize: 12 }}>{geoError}</div>}
       </div>
     );
