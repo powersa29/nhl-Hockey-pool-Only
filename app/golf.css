@@ -5,15 +5,15 @@
 .golf-app .course-row, .golf-app .tee-btn, .golf-app .state-tab,
 .golf-app .week-pill, .golf-app .input, .golf-app .select,
 .golf-app .brand-mark, .golf-app .score-card {
-  transition: background-color 0.25s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.25s ease;
+  transition: background-color 0.2s ease, border-color 0.15s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* ── Dark mode ── */
 .golf-app.dark {
-  --ice:        #080f08;
-  --ice-2:      #0d1a0d;
-  --ink:        #e2f4e2;
-  --ink-soft:   #8db88d;
+  --ice:        #0a0f0a;
+  --ice-2:      #111811;
+  --ink:        #dff0df;
+  --ink-soft:   #7fa87f;
   --red:        #f87171;
   --cyan:       #22d3ee;
   --yellow:     #fbbf24;
@@ -22,17 +22,12 @@
   --green-deep: #16a34a;
   --gold:       #fbbf24;
   --gold-light: #1a1200;
-  --muted:      #5a8a5a;
-  --line:       #1a3020;
-  --chip:       #0c180c;
-  --paper:      #080f08;
-  --shadow:     0 4px 0 rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.4);
-  --shadow-sm:  0 2px 0 rgba(0,0,0,0.4);
-  background-image:
-    radial-gradient(rgba(74,222,128,0.04) 1px, transparent 1px),
-    radial-gradient(rgba(74,222,128,0.025) 1px, transparent 1px);
-  background-size: 24px 24px, 12px 12px;
-  background-position: 0 0, 12px 12px;
+  --muted:      #4e7a4e;
+  --line:       #1e2f1e;
+  --chip:       #0e160e;
+  --paper:      #0a0f0a;
+  --shadow:     0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.3);
 }
 .golf-app.dark .input,
 .golf-app.dark .select { color-scheme: dark; }
@@ -45,30 +40,30 @@
   100% { transform: translateY(115vh) rotate(var(--hd-spin, 360deg)); opacity: 0; }
 }
 
-/* ── Override CSS tokens inside the golf wrapper — keeps component code unchanged */
+/* ── CSS tokens ── */
 .golf-app {
-  --ice:        #f0fdf4;
-  --ice-2:      #dcfce7;
-  --ink:        #1a2c1a;
-  --ink-soft:   #374737;
+  --ice:        #f7f9f7;
+  --ice-2:      #edf3ed;
+  --ink:        #141f14;
+  --ink-soft:   #3d4f3d;
   --red:        #dc2626;
   --cyan:       #0891b2;
   --yellow:     #ca8a04;
-  --green:      #15803d;
-  --green-dark: #166534;
+  --green:      #16a34a;
+  --green-dark: #15803d;
   --green-deep: #14532d;
   --gold:       #b45309;
   --gold-light: #fef3c7;
-  --muted:      #6b7280;
-  --line:       #bbf7d0;
+  --muted:      #6b7d6b;
+  --line:       #d4e6d4;
   --chip:       #ffffff;
-  --paper:      #f0fdf4;
-  --shadow:     0 4px 0 rgba(21,128,61,.15), 0 10px 30px rgba(21,128,61,.08);
-  --shadow-sm:  0 2px 0 rgba(21,128,61,.12);
-  --radius:     16px;
-  --radius-lg:  24px;
+  --paper:      #ffffff;
+  --shadow:     0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+  --radius:     8px;
+  --radius-lg:  12px;
   --radius-pill:999px;
-  --display:    'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --display:    'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --body:       'Inter', ui-sans-serif, system-ui, sans-serif;
   --mono:       'JetBrains Mono', ui-monospace, monospace;
 
@@ -77,19 +72,14 @@
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  background-image:
-    radial-gradient(rgba(21,128,61,0.04) 1px, transparent 1px),
-    radial-gradient(rgba(21,128,61,0.025) 1px, transparent 1px);
-  background-size: 24px 24px, 12px 12px;
-  background-position: 0 0, 12px 12px;
 }
 
 .golf-app h1, .golf-app h2, .golf-app h3, .golf-app h4 {
   font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; margin: 0;
 }
-.golf-app h1 { font-size: 52px; line-height: 0.95; }
-.golf-app h2 { font-size: 32px; line-height: 1.05; }
-.golf-app h3 { font-size: 20px; }
+.golf-app h1 { font-size: 40px; line-height: 1; }
+.golf-app h2 { font-size: 22px; line-height: 1.15; }
+.golf-app h3 { font-size: 17px; }
 .golf-app p  { margin: 0; }
 .golf-app button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 .golf-app a      { color: inherit; text-decoration: none; }
@@ -106,206 +96,216 @@
 .golf-app .header {
   display: flex; align-items: center; justify-content: space-between;
   gap: 20px; flex-wrap: wrap;
-  padding-bottom: 20px;
-  border-bottom: 2px dashed var(--line);
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
   margin-bottom: 28px;
 }
-.golf-app .brand     { display: flex; align-items: center; gap: 14px; }
+.golf-app .brand     { display: flex; align-items: center; gap: 12px; }
 .golf-app .brand-mark {
-  width: 52px; height: 52px; border-radius: 16px;
+  width: 44px; height: 44px; border-radius: 10px;
   background: var(--green-dark); color: white;
   display: grid; place-items: center;
-  transform: rotate(-5deg);
-  box-shadow: 0 4px 0 var(--green-deep);
-  font-size: 28px;
+  box-shadow: var(--shadow-sm);
+  font-size: 22px;
 }
-.golf-app .brand-name { font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1; }
-.golf-app .brand-sub  { font-size: 11px; color: var(--muted); letter-spacing: 0.09em; text-transform: uppercase; margin-top: 4px; }
+.golf-app .brand-name { font-family: var(--display); font-weight: 700; font-size: 17px; line-height: 1; letter-spacing: -0.01em; }
+.golf-app .brand-sub  { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 3px; }
 
 .golf-app .theme-toggle {
-  width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
-  background: var(--chip); border: 1.5px solid var(--line);
-  display: grid; place-items: center; font-size: 17px;
-  cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease;
+  width: 36px; height: 36px; border-radius: var(--radius); flex-shrink: 0;
+  background: var(--chip); border: 1px solid var(--line);
+  display: grid; place-items: center; font-size: 16px;
+  cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease;
 }
-.golf-app .theme-toggle:hover { border-color: var(--green); transform: rotate(20deg) scale(1.1); }
+.golf-app .theme-toggle:hover { border-color: var(--green); background: var(--ice-2); }
 
 .golf-app .nav {
-  display: flex; gap: 4px; background: var(--chip); padding: 5px;
-  border-radius: var(--radius-pill); border: 1.5px solid var(--line);
+  display: flex; gap: 2px; background: var(--ice-2); padding: 4px;
+  border-radius: var(--radius-pill); border: 1px solid var(--line);
 }
 .golf-app .nav a {
-  padding: 9px 15px; border-radius: var(--radius-pill);
-  font-weight: 600; font-size: 13px; color: var(--ink-soft);
+  padding: 8px 14px; border-radius: var(--radius-pill);
+  font-weight: 500; font-size: 13px; color: var(--ink-soft);
   transition: all .15s ease; white-space: nowrap; display: block;
 }
-.golf-app .nav a:hover  { color: var(--green); }
-.golf-app .nav a.active { background: var(--green); color: white; }
-@media (max-width: 600px) { .golf-app .nav a { padding: 8px 10px; font-size: 12px; } }
+.golf-app .nav a:hover  { color: var(--ink); }
+.golf-app .nav a.active { background: var(--green-dark); color: white; font-weight: 600; }
+@media (max-width: 600px) { .golf-app .nav a { padding: 7px 10px; font-size: 12px; } }
 
+/* ── Buttons ── */
 .golf-app .btn {
-  padding: 11px 20px; border-radius: var(--radius-pill);
-  background: var(--green); color: white;
-  font-weight: 700; font-size: 14px;
+  padding: 10px 20px; border-radius: var(--radius-pill);
+  background: var(--green-dark); color: white;
+  font-weight: 600; font-size: 14px;
   box-shadow: var(--shadow-sm);
-  transition: transform .1s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
   display: inline-flex; align-items: center; gap: 6px;
 }
-.golf-app .btn:hover   { transform: translateY(-1px); }
+.golf-app .btn:hover   { background: var(--green-deep); box-shadow: var(--shadow); }
 .golf-app .btn.dark    { background: var(--green-dark); }
 .golf-app .btn.gold    { background: var(--gold); }
-.golf-app .btn.ghost   { background: transparent; color: var(--green); border: 1.5px solid var(--green); box-shadow: none; }
+.golf-app .btn.ghost   {
+  background: transparent; color: var(--green-dark);
+  border: 1px solid var(--green-dark); box-shadow: none;
+}
+.golf-app .btn.ghost:hover { background: color-mix(in oklab, var(--green) 8%, transparent); }
 .golf-app .btn.danger  { background: var(--red); color: white; }
-.golf-app .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.golf-app .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Hero ── */
 .golf-app .hero {
-  background: var(--paper); border: 2px solid var(--green-dark);
+  background: var(--paper); border: 1px solid var(--line);
   border-radius: var(--radius-lg); padding: 28px 32px;
   box-shadow: var(--shadow); margin-bottom: 20px;
   position: relative; overflow: hidden;
 }
 .golf-app .hero::before {
-  content: "⛳"; position: absolute; right: 32px; top: 50%;
-  transform: translateY(-50%) rotate(8deg);
-  font-size: 120px; opacity: 0.06; line-height: 1; pointer-events: none;
+  content: "⛳"; position: absolute; right: 28px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 96px; opacity: 0.04; line-height: 1; pointer-events: none;
 }
 .golf-app .hero-tag {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 12px; border-radius: var(--radius-pill);
-  background: var(--green); color: white;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--green) 10%, transparent);
+  color: var(--green-dark); border: 1px solid color-mix(in oklab, var(--green) 30%, transparent);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
 }
-.golf-app .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: white; animation: gpulse 1.4s infinite; }
+.golf-app .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: gpulse 1.4s infinite; }
 @keyframes gpulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
 .golf-app .hero h1   { margin-top: 14px; }
-.golf-app .accent    { color: var(--green); }
-.golf-app .hero-sub  { margin-top: 12px; font-size: 15px; color: var(--ink-soft); max-width: 480px; line-height: 1.6; }
-.golf-app .hero-stats { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.golf-app .accent    { color: var(--green-dark); }
+.golf-app .hero-sub  { margin-top: 10px; font-size: 14px; color: var(--muted); max-width: 480px; line-height: 1.65; }
+.golf-app .hero-stats { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
 .golf-app .stat-pill {
-  background: var(--chip); border: 1.5px solid var(--line);
-  border-radius: var(--radius); padding: 10px 14px;
+  background: var(--ice-2); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 10px 16px;
 }
-.golf-app .stat-pill .k { font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 1; color: var(--green); }
-.golf-app .stat-pill .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+.golf-app .stat-pill .k { font-family: var(--display); font-size: 20px; font-weight: 700; line-height: 1; color: var(--green-dark); }
+.golf-app .stat-pill .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 3px; }
 
 /* ── Card ── */
 .golf-app .card {
-  background: var(--paper); border: 2px solid var(--green-dark);
+  background: var(--paper); border: 1px solid var(--line);
   border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow);
 }
-.golf-app .card-header { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.golf-app .card-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
 
 /* ── Leaderboard ── */
 .golf-app .lb {
   display: grid;
-  grid-template-columns: 68px 1fr 90px 80px 80px 70px;
-  border-radius: var(--radius); overflow: hidden; border: 1.5px solid var(--line);
+  grid-template-columns: 60px 1fr 90px 80px 80px 70px;
+  border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
 }
 .golf-app .lb .th, .golf-app .lb .td {
-  padding: 13px 15px; font-size: 13px; display: flex; align-items: center;
+  padding: 12px 14px; font-size: 13px; display: flex; align-items: center;
   background: var(--chip); border-bottom: 1px solid var(--line);
 }
 .golf-app .lb .th {
-  background: var(--ice-2); font-weight: 700; font-size: 11px;
-  color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--ice-2); font-weight: 600; font-size: 11px;
+  color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase;
 }
 .golf-app .lb .row             { display: contents; }
 .golf-app .lb .row:last-child .td { border-bottom: none; }
 .golf-app .lb .row:hover .td   { background: var(--ice-2); }
-.golf-app .lb .row.top1 .td    { background: color-mix(in oklab, var(--gold-light) 60%, var(--chip)); }
-.golf-app .lb .row.top2 .td    { background: color-mix(in oklab, #e0f2fe 60%, var(--chip)); }
-.golf-app .lb .row.top3 .td    { background: color-mix(in oklab, #fce7f3 40%, var(--chip)); }
+.golf-app .lb .row.top1 .td    { background: color-mix(in oklab, #fef9c3 50%, var(--chip)); }
+.golf-app .lb .row.top2 .td    { background: color-mix(in oklab, #f1f5f9 60%, var(--chip)); }
+.golf-app .lb .row.top3 .td    { background: color-mix(in oklab, #fdf4ff 50%, var(--chip)); }
 
 .golf-app .rank-badge {
-  width: 34px; height: 34px; border-radius: 10px;
+  width: 32px; height: 32px; border-radius: var(--radius);
   display: grid; place-items: center;
-  font-family: var(--display); font-weight: 800; font-size: 15px;
-  background: var(--green-dark); color: white; transform: rotate(-3deg);
+  font-family: var(--display); font-weight: 700; font-size: 14px;
+  background: var(--ice-2); color: var(--ink-soft);
+  border: 1px solid var(--line);
 }
-.golf-app .rank-badge.rank1   { background: var(--gold); box-shadow: 0 3px 0 #92400e; }
-.golf-app .rank-badge.rank2   { background: #64748b; }
-.golf-app .rank-badge.rank3   { background: #92400e; }
-.golf-app .rank-badge.no-score { background: var(--line); color: var(--muted); }
+.golf-app .rank-badge.rank1   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.golf-app .rank-badge.rank2   { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.golf-app .rank-badge.rank3   { background: #fdf4ff; color: #7e22ce; border-color: #f3e8ff; }
+.golf-app .rank-badge.no-score { background: var(--ice-2); color: var(--muted); border-color: var(--line); }
 
 .golf-app .name-cell            { display: flex; flex-direction: column; gap: 2px; }
-.golf-app .name-cell .n         { font-weight: 700; font-size: 14px; }
+.golf-app .name-cell .n         { font-weight: 600; font-size: 14px; }
 .golf-app .name-cell .sub       { font-size: 11px; color: var(--muted); }
-.golf-app .net-score            { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--green); }
-.golf-app .net-score.none       { color: var(--muted); font-size: 14px; font-family: var(--body); font-weight: 400; font-style: italic; }
+.golf-app .net-score            { font-family: var(--display); font-weight: 700; font-size: 18px; color: var(--green-dark); }
+.golf-app .net-score.none       { color: var(--muted); font-size: 13px; font-family: var(--body); font-weight: 400; font-style: italic; }
 
 @media (max-width: 720px) {
-  .golf-app .lb { grid-template-columns: 58px 1fr 80px 68px; }
+  .golf-app .lb { grid-template-columns: 50px 1fr 80px 68px; }
   .golf-app .lb .col-hcp, .golf-app .lb .col-course { display: none; }
 }
 @media (max-width: 480px) {
-  .golf-app .lb { grid-template-columns: 50px 1fr 70px; }
+  .golf-app .lb { grid-template-columns: 44px 1fr 68px; }
   .golf-app .lb .col-rounds { display: none; }
 }
 
 /* ── Forms ── */
 .golf-app .form-card {
-  background: var(--paper); border: 2px solid var(--green-dark);
+  background: var(--paper); border: 1px solid var(--line);
   border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow);
   max-width: 580px;
 }
-.golf-app .form-row { margin-bottom: 20px; }
-.golf-app .form-row label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 7px; color: var(--ink-soft); letter-spacing: 0.03em; }
+.golf-app .form-row { margin-bottom: 18px; }
+.golf-app .form-row label { display: block; font-weight: 500; font-size: 13px; margin-bottom: 6px; color: var(--ink-soft); }
 .golf-app .input, .golf-app .select {
-  width: 100%; padding: 11px 15px; border-radius: var(--radius);
-  background: var(--chip); border: 1.5px solid var(--line);
+  width: 100%; padding: 10px 14px; border-radius: var(--radius);
+  background: var(--chip); border: 1px solid var(--line);
   font-size: 14px; font-family: inherit; color: var(--ink); outline: none;
-  transition: border-color .15s;
+  transition: border-color .15s, box-shadow .15s;
 }
-.golf-app .input:focus, .golf-app .select:focus { border-color: var(--green); }
+.golf-app .input:focus, .golf-app .select:focus {
+  border-color: var(--green-dark);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--green) 12%, transparent);
+}
 .golf-app .hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
 
 /* ── Round Tiles ── */
 .golf-app .round-tile {
-  background: var(--chip); border: 1.5px solid var(--line);
+  background: var(--chip); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 14px 16px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
 .golf-app .round-tile .rt-left    { display: flex; flex-direction: column; gap: 3px; }
-.golf-app .round-tile .rt-course  { font-weight: 700; font-size: 14px; }
+.golf-app .round-tile .rt-course  { font-weight: 600; font-size: 14px; }
 .golf-app .round-tile .rt-meta    { font-size: 12px; color: var(--muted); }
 .golf-app .round-tile .rt-scores  { display: flex; gap: 20px; align-items: center; }
 .golf-app .round-tile .rt-gross .v,
-.golf-app .round-tile .rt-net .v  { font-family: var(--display); font-size: 24px; font-weight: 800; }
-.golf-app .round-tile .rt-net .v  { color: var(--green); }
+.golf-app .round-tile .rt-net .v  { font-family: var(--display); font-size: 22px; font-weight: 700; }
+.golf-app .round-tile .rt-net .v  { color: var(--green-dark); }
 .golf-app .round-tile .rt-gross .l,
 .golf-app .round-tile .rt-net .l  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .golf-app .best-badge {
-  padding: 3px 9px; border-radius: var(--radius-pill);
-  background: var(--green); color: white; font-size: 10px; font-weight: 800;
-  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--green) 12%, transparent);
+  color: var(--green-dark); border: 1px solid color-mix(in oklab, var(--green) 25%, transparent);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
 }
 
 /* ── Tee Selector ── */
 .golf-app .tee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .golf-app .tee-btn {
-  padding: 12px; border-radius: var(--radius); border: 2px solid var(--line);
+  padding: 12px; border-radius: var(--radius); border: 1px solid var(--line);
   background: var(--chip); text-align: left; cursor: pointer; transition: all .15s;
 }
-.golf-app .tee-btn:hover    { border-color: var(--green); }
-.golf-app .tee-btn.selected { border-color: var(--green); background: color-mix(in oklab, var(--green) 10%, var(--chip)); }
-.golf-app .tee-btn .tee-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.golf-app .tee-btn:hover    { border-color: var(--green-dark); }
+.golf-app .tee-btn.selected { border-color: var(--green-dark); background: color-mix(in oklab, var(--green) 8%, var(--chip)); }
+.golf-app .tee-btn .tee-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
 .golf-app .tee-btn.white .tee-name { color: #374151; }
 .golf-app .tee-btn.blue .tee-name  { color: #1d4ed8; }
 .golf-app .tee-btn.black .tee-name { color: #111827; }
 .golf-app .tee-btn .tee-info { font-size: 11px; color: var(--muted); line-height: 1.5; }
 
 /* ── Course List ── */
-.golf-app .course-list { display: flex; flex-direction: column; gap: 8px; }
+.golf-app .course-list { display: flex; flex-direction: column; gap: 6px; }
 .golf-app .course-row {
-  background: var(--chip); border: 1.5px solid var(--line);
+  background: var(--chip); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 12px 16px;
   display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
   cursor: pointer; transition: all .15s;
 }
-.golf-app .course-row:hover   { border-color: var(--green); }
-.golf-app .course-row.selected { border-color: var(--green); background: color-mix(in oklab, var(--green) 8%, var(--chip)); }
-.golf-app .course-row .cr-name { font-weight: 700; font-size: 14px; }
+.golf-app .course-row:hover   { border-color: var(--green-dark); }
+.golf-app .course-row.selected { border-color: var(--green-dark); background: color-mix(in oklab, var(--green) 5%, var(--chip)); }
+.golf-app .course-row .cr-name { font-weight: 600; font-size: 14px; }
 .golf-app .course-row .cr-loc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 /* ── State Tabs ── */
@@ -316,25 +316,26 @@
 }
 .golf-app .state-tabs::-webkit-scrollbar { display: none; }
 .golf-app .state-tab {
-  padding: 8px 16px; border-radius: var(--radius-pill);
-  background: var(--chip); border: 1.5px solid var(--line);
-  font-weight: 700; font-size: 13px; color: var(--ink-soft); cursor: pointer; transition: all .15s;
+  padding: 7px 14px; border-radius: var(--radius-pill);
+  background: var(--chip); border: 1px solid var(--line);
+  font-weight: 500; font-size: 13px; color: var(--ink-soft); cursor: pointer; transition: all .15s;
 }
-.golf-app .state-tab:hover  { color: var(--green); border-color: var(--green); }
-.golf-app .state-tab.active { background: var(--green); color: white; border-color: var(--green); }
+.golf-app .state-tab:hover  { color: var(--ink); border-color: var(--green-dark); }
+.golf-app .state-tab.active { background: var(--green-dark); color: white; border-color: var(--green-dark); }
 
 /* ── Week Selector ── */
 .golf-app .week-selector {
-  display: flex; gap: 8px; align-items: center; margin-bottom: 20px;
+  display: flex; gap: 6px; align-items: center; margin-bottom: 18px;
   overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
   padding-bottom: 2px;
 }
 .golf-app .week-selector::-webkit-scrollbar { display: none; }
 .golf-app .week-pill {
-  padding: 8px 16px; border-radius: var(--radius-pill);
-  background: var(--chip); border: 1.5px solid var(--line);
-  font-weight: 600; font-size: 13px; cursor: pointer; transition: all .15s;
+  padding: 7px 14px; border-radius: var(--radius-pill);
+  background: var(--chip); border: 1px solid var(--line);
+  font-weight: 500; font-size: 13px; color: var(--ink-soft); cursor: pointer; transition: all .15s; white-space: nowrap;
 }
+.golf-app .week-pill:hover { border-color: var(--green-dark); color: var(--ink); }
 .golf-app .week-pill.active { background: var(--green-dark); color: white; border-color: var(--green-dark); }
 
 /* ── Rules ── */
@@ -342,57 +343,61 @@
 @media (max-width: 820px) { .golf-app .rules-grid { grid-template-columns: 1fr; } }
 .golf-app .rule-card {
   padding: 20px; border-radius: var(--radius); background: var(--chip);
-  border: 2px solid var(--green-dark); box-shadow: var(--shadow-sm); position: relative;
+  border: 1px solid var(--line); box-shadow: var(--shadow-sm); position: relative;
 }
 .golf-app .rule-num {
-  position: absolute; top: -14px; left: 18px;
-  width: 32px; height: 32px; border-radius: 10px; background: var(--green); color: white;
-  display: grid; place-items: center; font-family: var(--display); font-weight: 800; transform: rotate(-4deg);
+  position: absolute; top: -12px; left: 16px;
+  width: 28px; height: 28px; border-radius: var(--radius); background: var(--green-dark); color: white;
+  display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 13px;
 }
-.golf-app .rule-card h3 { margin: 6px 0 8px; font-size: 17px; }
-.golf-app .rule-card p  { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+.golf-app .rule-card h3 { margin: 8px 0 8px; font-size: 16px; }
+.golf-app .rule-card p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
 /* ── Scoring grid (Rules page) ── */
 .golf-app .scoring-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 .golf-app .score-card {
-  background: var(--chip); border: 1.5px solid var(--line);
-  border-radius: var(--radius); padding: 14px 10px; text-align: center;
+  background: var(--chip); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 12px 10px; text-align: center;
 }
 .golf-app .score-card .n {
-  font-family: var(--display); font-size: 22px; font-weight: 800;
-  color: var(--green); line-height: 1;
+  font-family: var(--display); font-size: 20px; font-weight: 700;
+  color: var(--green-dark); line-height: 1;
 }
 .golf-app .score-card .l {
   font-size: 11px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;
 }
 
 /* ── Misc ── */
-.golf-app .empty-state { padding: 40px 20px; text-align: center; color: var(--muted); font-style: italic; }
+.golf-app .empty-state { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 14px; }
 .golf-app .success-banner {
-  margin-top: 12px; padding: 14px 18px; border-radius: var(--radius);
-  background: color-mix(in oklab, #dcfce7 80%, var(--chip));
-  border: 1.5px solid var(--green); color: var(--ink);
-  font-weight: 600; display: flex; align-items: center; gap: 10px; font-size: 14px;
+  margin-top: 12px; padding: 12px 16px; border-radius: var(--radius);
+  background: color-mix(in oklab, #dcfce7 60%, var(--chip));
+  border: 1px solid color-mix(in oklab, var(--green) 30%, transparent); color: var(--ink);
+  font-weight: 500; display: flex; align-items: center; gap: 10px; font-size: 14px;
 }
 .golf-app .error-banner {
-  margin-top: 12px; padding: 14px 18px; border-radius: var(--radius);
-  background: color-mix(in oklab, #fee2e2 80%, var(--chip));
-  border: 1.5px solid var(--red); color: var(--ink);
-  font-weight: 600; display: flex; align-items: center; gap: 10px; font-size: 14px;
+  margin-top: 12px; padding: 12px 16px; border-radius: var(--radius);
+  background: color-mix(in oklab, #fee2e2 60%, var(--chip));
+  border: 1px solid color-mix(in oklab, #dc2626 25%, transparent); color: var(--ink);
+  font-weight: 500; display: flex; align-items: center; gap: 10px; font-size: 14px;
 }
 .golf-app .section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .golf-app .tag {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: var(--radius-pill);
-  font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
 }
-.golf-app .tag.green { background: var(--green); color: white; }
-.golf-app .tag.gold  { background: var(--gold); color: white; }
+.golf-app .tag.green {
+  background: color-mix(in oklab, var(--green) 10%, transparent);
+  color: var(--green-dark);
+  border: 1px solid color-mix(in oklab, var(--green) 25%, transparent);
+}
+.golf-app .tag.gold  { background: color-mix(in oklab, var(--gold) 12%, transparent); color: var(--gold); border: 1px solid color-mix(in oklab, var(--gold) 25%, transparent); }
 .golf-app .tag.gray  { background: var(--ice-2); color: var(--muted); border: 1px solid var(--line); }
 
 /* ── Tee inputs (AddCourseModal) ── */
@@ -418,7 +423,6 @@
    ═══════════════════════════════════════════ */
 @media (max-width: 640px) {
 
-  /* Header: stack brand on top, nav row below */
   .golf-app .header { flex-direction: column; align-items: stretch; gap: 10px; }
   .golf-app .header > div:last-child {
     display: flex; align-items: center; gap: 8px;
@@ -430,40 +434,29 @@
     scrollbar-width: none; padding: 4px; flex-wrap: nowrap;
   }
   .golf-app .nav::-webkit-scrollbar { display: none; }
-  .golf-app .nav a { padding: 7px 11px; font-size: 12px; white-space: nowrap; }
+  .golf-app .nav a { padding: 7px 10px; font-size: 12px; white-space: nowrap; }
 
-  /* Brand: a touch smaller */
-  .golf-app .brand-mark { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
-  .golf-app .brand-name  { font-size: 16px; }
+  .golf-app .brand-mark { width: 38px; height: 38px; font-size: 18px; border-radius: 8px; }
+  .golf-app .brand-name  { font-size: 15px; }
 
-  /* Hero: reduce enormous h1 */
-  .golf-app h1  { font-size: 34px; line-height: 1; }
-  .golf-app h2  { font-size: 24px; }
+  .golf-app h1  { font-size: 30px; line-height: 1.05; }
+  .golf-app h2  { font-size: 19px; }
   .golf-app .hero { padding: 20px 18px; }
-  .golf-app .hero::before { font-size: 80px; opacity: 0.04; right: 12px; }
+  .golf-app .hero::before { font-size: 72px; right: 12px; }
 
-  /* Cards & forms */
   .golf-app .card      { padding: 16px; }
   .golf-app .form-card { padding: 20px 16px; }
 
-  /* Tee selector: 2-up instead of 3-up */
   .golf-app .tee-grid { grid-template-columns: 1fr 1fr; }
-
-  /* Tee inputs in Add Course modal: 2×2 */
   .golf-app .tee-inputs-grid { grid-template-columns: 1fr 1fr; }
 
-  /* Round tiles: let scores row fill width */
   .golf-app .round-tile { align-items: flex-start; }
   .golf-app .round-tile .rt-scores { flex: 1; width: 100%; justify-content: flex-start; }
 
-  /* Leaderboard: tighter cells */
   .golf-app .lb .th,
   .golf-app .lb .td { padding: 10px 10px; font-size: 12px; }
 
-  /* Player profile: make action buttons wrap */
   .golf-app .player-actions { flex-wrap: wrap; }
-
-  /* Admin row wrapping */
   .golf-app .admin-row { flex-direction: column; align-items: flex-start !important; }
 }
 
@@ -471,9 +464,9 @@
    TINY — ≤ 400px
    ═══════════════════════════════════════════ */
 @media (max-width: 400px) {
-  .golf-app h1 { font-size: 28px; }
+  .golf-app h1 { font-size: 26px; }
   .golf-app .tee-grid { grid-template-columns: 1fr; }
-  .golf-app .brand-name { font-size: 14px; }
+  .golf-app .brand-name { font-size: 13px; }
   .golf-app .hero-tag { font-size: 10px; }
-  .golf-app .stat-pill .k { font-size: 18px; }
+  .golf-app .stat-pill .k { font-size: 17px; }
 }
