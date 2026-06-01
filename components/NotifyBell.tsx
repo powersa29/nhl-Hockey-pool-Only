@@ -12,7 +12,10 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-type Status = 'idle' | 'subscribed' | 'denied' | 'unsupported';
+// localStorage key that persists "user wants notifications" intent across SW resets
+const NOTIFY_INTENT_KEY = 'golf-notify-intent';
+
+type Status = 'idle' | 'subscribed' | 'denied' | 'unsupported' | 'lost';
 
 function useNotifyStatus() {
   const [status, setStatus] = useState<Status>('idle');
@@ -25,7 +28,14 @@ function useNotifyStatus() {
     if (Notification.permission === 'denied') { setStatus('denied'); return; }
     navigator.serviceWorker.ready
       .then(reg => reg.pushManager.getSubscription())
-      .then(sub => { if (sub) setStatus('subscribed'); })
+      .then(sub => {
+        if (sub) {
+          setStatus('subscribed');
+        } else if (localStorage.getItem(NOTIFY_INTENT_KEY)) {
+          // User previously subscribed but SW lost the subscription (iOS purge / reinstall)
+          setStatus('lost');
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -43,6 +53,7 @@ function useNotifyStatus() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId, subscription: sub.toJSON() }),
       });
+      localStorage.setItem(NOTIFY_INTENT_KEY, '1');
       setStatus('subscribed');
     } catch {
       if (Notification.permission === 'denied') setStatus('denied');
@@ -64,6 +75,7 @@ function useNotifyStatus() {
         });
         await sub.unsubscribe();
       }
+      localStorage.removeItem(NOTIFY_INTENT_KEY);
       setStatus('idle');
     } finally {
       setLoading(false);
@@ -94,6 +106,15 @@ export default function NotifyBell({ playerId }: { playerId?: number }) {
       </button>
     );
   }
+  if (status === 'lost') {
+    return (
+      <button className="theme-toggle" onClick={() => subscribe(playerId)} disabled={loading}
+        title="Notifications disconnected — tap to reconnect"
+        style={{ opacity: loading ? 0.6 : 1, color: '#b45309' }}>
+        <BellOff size={16} />
+      </button>
+    );
+  }
   return (
     <button className="theme-toggle" onClick={() => subscribe(playerId)} disabled={loading}
       title="Get Monday morning notifications" style={{ opacity: loading ? 0.6 : 1 }}>
@@ -109,12 +130,14 @@ export function NotifyRow({ playerId }: { playerId?: number }) {
   const isOn = status === 'subscribed';
   const isDenied = status === 'denied';
   const isUnsupported = status === 'unsupported';
+  const isLost = status === 'lost';
 
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: 16, padding: '14px 16px',
-      background: 'var(--ice-2)', border: '1px solid var(--line)',
+      background: isLost ? 'color-mix(in oklab, #f59e0b 6%, var(--ice-2))' : 'var(--ice-2)',
+      border: `1px solid ${isLost ? 'color-mix(in oklab, #f59e0b 35%, transparent)' : 'var(--line)'}`,
       borderRadius: 'var(--radius)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -123,7 +146,7 @@ export function NotifyRow({ playerId }: { playerId?: number }) {
           background: isOn ? 'color-mix(in oklab, var(--green) 12%, transparent)' : 'var(--chip)',
           border: `1px solid ${isOn ? 'color-mix(in oklab, var(--green) 30%, transparent)' : 'var(--line)'}`,
           display: 'grid', placeItems: 'center', flexShrink: 0,
-          color: isOn ? 'var(--green-dark)' : 'var(--muted)',
+          color: isOn ? 'var(--green-dark)' : isLost ? '#b45309' : 'var(--muted)',
         }}>
           {isOn ? <Bell size={16} /> : <BellOff size={16} />}
         </div>
@@ -134,8 +157,10 @@ export function NotifyRow({ playerId }: { playerId?: number }) {
               ? 'Not supported in this browser'
               : isDenied
               ? 'Blocked in browser settings — enable to turn on'
+              : isLost
+              ? 'Subscription was reset — tap Reconnect to restore'
               : isOn
-              ? 'You\'ll get a ping every Monday morning'
+              ? "You'll get a ping every Monday morning"
               : 'Get a nudge every Monday to kick off the week'}
           </div>
         </div>
@@ -151,15 +176,15 @@ export function NotifyRow({ playerId }: { playerId?: number }) {
           disabled={loading}
           style={{
             padding: '7px 16px', borderRadius: 'var(--radius-pill)',
-            border: `1px solid ${isOn ? 'var(--line)' : 'var(--green-dark)'}`,
-            background: isOn ? 'var(--chip)' : 'var(--green-dark)',
+            border: `1px solid ${isOn ? 'var(--line)' : isLost ? '#b45309' : 'var(--green-dark)'}`,
+            background: isOn ? 'var(--chip)' : isLost ? '#b45309' : 'var(--green-dark)',
             color: isOn ? 'var(--ink-soft)' : 'white',
             fontWeight: 600, fontSize: 13, cursor: 'pointer',
             opacity: loading ? 0.6 : 1, flexShrink: 0,
             transition: 'all 0.15s ease',
           }}
         >
-          {loading ? '…' : isOn ? 'Turn off' : 'Turn on'}
+          {loading ? '…' : isOn ? 'Turn off' : isLost ? 'Reconnect' : 'Turn on'}
         </button>
       )}
     </div>
