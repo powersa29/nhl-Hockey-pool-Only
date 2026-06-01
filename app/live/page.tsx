@@ -18,6 +18,12 @@ interface LiveLocation {
   course_id: number | null; course_name: string;
   lat: number; lng: number; updated_at: string;
 }
+interface LiveRound {
+  id: number; player_id: number | null; player_name: string;
+  course_name: string; tee_name: string;
+  scores: number[]; hole_pars: { par: number }[];
+  slope_rating: number; handicap_index: number | null;
+}
 interface HoleData {
   hole_number: number; par: number;
   yards: number | null; handicap: number | null;
@@ -88,7 +94,8 @@ function ScoreBubble({ score, par, size = 26 }: { score: number; par?: number; s
 export default function LivePage() {
   const [players, setPlayers]   = useState<Player[]>([]);
   const [courses, setCourses]   = useState<CourseWithTees[]>([]);
-  const [liveList, setLiveList] = useState<LiveLocation[]>([]);
+  const [liveList, setLiveList]     = useState<LiveLocation[]>([]);
+  const [liveRounds, setLiveRounds] = useState<LiveRound[]>([]);
 
   const [playerId, setPlayerId] = useState('');
   const [courseId, setCourseId] = useState('');
@@ -204,8 +211,12 @@ export default function LivePage() {
 
   // ── GPS ───────────────────────────────────────────────────────────────────
   async function pollLive() {
-    const data = await fetch('/api/live').then(r => r.json()).catch(() => []);
-    setLiveList(data);
+    const [locs, rounds] = await Promise.all([
+      fetch('/api/live').then(r => r.json()).catch(() => []),
+      fetch('/api/live-scoring').then(r => r.json()).catch(() => []),
+    ]);
+    setLiveList(Array.isArray(locs) ? locs : []);
+    setLiveRounds(Array.isArray(rounds) ? rounds : []);
   }
 
   function pushLocation(lat: number, lng: number) {
@@ -711,10 +722,10 @@ export default function LivePage() {
             Share your GPS and score hole by hole — your group sees it all live.
           </p>
         </div>
-        {liveList.length > 0 && (
+        {liveRounds.length > 0 && (
           <span className="tag green">
             <span className="pulse-dot" style={{ background: 'white' }} />
-            {liveList.length} on course
+            {liveRounds.length} on course
           </span>
         )}
       </div>
@@ -805,22 +816,44 @@ export default function LivePage() {
         {/* On course now */}
         <div className="card">
           <h3 style={{ fontSize: 16, marginBottom: 12 }}>On Course Now</h3>
-          {liveList.length === 0 ? (
+          {liveRounds.length === 0 ? (
             <div className="empty-state" style={{ padding: '24px 0' }}>No one is on course yet.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {liveList.map((l, i) => (
-                <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--ice-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)' }}>
+              {liveRounds.map((r, i) => {
+                const hasGps = liveList.some(l => l.player_id === r.player_id);
+                const gross = r.scores.reduce((a: number, b: number) => a + b, 0);
+                const hcp = r.handicap_index != null ? Math.round((r.handicap_index * r.slope_rating) / 113 / 2) : 0;
+                const net = gross - hcp;
+                const holesPlayed = r.scores.length;
+                return (
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--ice-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)' }}>
                   <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, background: COLORS[i % COLORS.length], color: 'white', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700 }}>
-                    {l.player_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    {r.player_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.player_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{l.course_name || 'Unknown'} · {timeAgo(l.updated_at)}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {r.player_name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {r.course_name} · {holesPlayed}/9
+                      {hasGps && <span style={{ color: 'var(--green)', fontWeight: 600 }}>· GPS</span>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    {holesPlayed > 0 ? (
+                      <>
+                        <div style={{ fontWeight: 800, fontSize: 14 }}>net {net}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)' }}>{gross} gross</div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Starting…</div>
+                    )}
                   </div>
                   <span className="pulse-dot" style={{ width: 8, height: 8, background: 'var(--green)', display: 'inline-block', borderRadius: '50%', animation: 'gpulse 1.4s infinite', flexShrink: 0 }} />
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
