@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
-webpush.setVapidDetails(
-  'mailto:admin@glizzygolf.app',
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
-
 function db() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +18,12 @@ export async function GET(req: NextRequest) {
   ) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  webpush.setVapidDetails(
+    'mailto:admin@glizzygolf.app',
+    process.env.VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!,
+  );
 
   const { data: subs, error } = await db()
     .from('push_subscriptions')
