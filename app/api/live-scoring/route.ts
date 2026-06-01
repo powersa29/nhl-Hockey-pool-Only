@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { sendPushToAll } from '@/lib/push';
 
 function db() {
   return createClient(
@@ -47,6 +48,17 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Fire-and-forget push to everyone else
+  sendPushToAll(
+    {
+      title: `${player_name} is on the course!`,
+      body:  `Live at ${course_name} — follow along now`,
+      url:   '/live',
+    },
+    { excludePlayerId: player_id ? Number(player_id) : undefined },
+  ).catch(() => {});
+
   return NextResponse.json(data, { status: 201 });
 }
 
