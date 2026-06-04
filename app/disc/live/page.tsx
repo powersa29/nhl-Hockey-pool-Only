@@ -1,10 +1,55 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { Player } from '@/lib/golf-db';
 import { GolfPin, MapPin, CheckCircle } from '@/components/icons';
 
 type Step = 'setup' | 'playing' | 'done' | 'submitted';
+
+type CelebrationKind = 'birdie' | 'eagle' | 'ace' | 'snowman';
+const CELEBRATIONS: Record<CelebrationKind, { emoji: string; label: string; bg: string }> = {
+  birdie:  { emoji: '🐦', label: 'Birdie!',  bg: 'rgba(21,128,61,0.92)'  },
+  eagle:   { emoji: '🦅', label: 'Eagle!!',   bg: 'rgba(29,78,216,0.92)'  },
+  ace:     { emoji: '🃏', label: 'Ace!!!',    bg: 'rgba(109,40,217,0.94)' },
+  snowman: { emoji: '☃️', label: 'Snowman…', bg: 'rgba(15,23,42,0.90)'   },
+};
+
+function CelebrationOverlay({ kind, onDone }: { kind: CelebrationKind; onDone: () => void }) {
+  const cfg = CELEBRATIONS[kind];
+  const particles = useMemo(() =>
+    Array.from({ length: 22 }, (_, i) => ({
+      left:  `${((i * 19 + 11) % 89) + 4}%`,
+      top:   `${((i * 13 +  7) % 82) + 4}%`,
+      delay: `${((i * 7) % 40) * 0.01}s`,
+      dur:   `${(0.7 + (i % 6) * 0.12).toFixed(2)}s`,
+      size:  `${22 + (i % 5) * 7}px`,
+    })), []);
+  return (
+    <div onClick={onDone} style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: cfg.bg, cursor: 'pointer',
+      animation: 'celebrate-bg 2.4s ease-in-out forwards',
+    }}>
+      {particles.map((p, i) => (
+        <span key={i} style={{
+          position: 'absolute', left: p.left, top: p.top, lineHeight: 1,
+          fontSize: p.size, pointerEvents: 'none', userSelect: 'none',
+          animation: `confetti-burst ${p.dur} ${p.delay} ease-out forwards`,
+        }}>{cfg.emoji}</span>
+      ))}
+      <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 88, lineHeight: 1, marginBottom: 12, animation: 'celebrate-pop 0.5s ease-out forwards' }}>
+          {cfg.emoji}
+        </div>
+        <div style={{ fontSize: 30, fontWeight: 900, color: 'white', textShadow: '0 2px 12px rgba(0,0,0,0.6)', letterSpacing: -0.5 }}>
+          {cfg.label}
+        </div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 10 }}>tap to dismiss</div>
+      </div>
+    </div>
+  );
+}
 
 const SCORE_NAMES: Record<number, string> = {
   [-3]: 'Albatross', [-2]: 'Eagle', [-1]: 'Birdie',
@@ -71,6 +116,7 @@ export default function DiscLivePage() {
   const [geoError, setGeoError]   = useState('');
   const [starting, setStarting]   = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [celebration, setCelebration] = useState<CelebrationKind | null>(null);
 
   const watchIdRef   = useRef<number | null>(null);
   const sendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -224,8 +270,18 @@ export default function DiscLivePage() {
 
   function enterScore(score: number) {
     const par = holePars[currentHole] ?? DEFAULT_PAR;
+    const diff = score - par;
     setFlashLabel(scoreName(score, par));
     setTimeout(() => setFlashLabel(''), 1400);
+    let celebKind: CelebrationKind | null = null;
+    if (score === 1)      celebKind = 'ace';
+    else if (diff <= -2)  celebKind = 'eagle';
+    else if (diff === -1) celebKind = 'birdie';
+    else if (score === 8) celebKind = 'snowman';
+    if (celebKind) {
+      setCelebration(celebKind);
+      setTimeout(() => setCelebration(null), 2400);
+    }
     const next = [...scores, score];
     setScores(next);
     if (liveRoundRef.current) {
@@ -234,8 +290,10 @@ export default function DiscLivePage() {
         body: JSON.stringify({ id: liveRoundRef.current, scores: next }),
       });
     }
-    if (currentHole >= totalHoles - 1) { setStep('done'); }
-    else { setCurrentHole(h => h + 1); }
+    if (currentHole >= totalHoles - 1) {
+      if (celebKind) setTimeout(() => setStep('done'), 2200);
+      else setStep('done');
+    } else { setCurrentHole(h => h + 1); }
   }
 
   function undoLast() {
@@ -348,6 +406,7 @@ export default function DiscLivePage() {
         ) : (
           <button className="btn danger" style={{ width: '100%' }} onClick={() => setConfirmEnd(true)}>Discard & End</button>
         )}
+        {celebration && <CelebrationOverlay kind={celebration} onDone={() => setCelebration(null)} />}
       </div>
     );
   }
@@ -437,6 +496,7 @@ export default function DiscLivePage() {
           </div>
         )}
         {geoError && <div className="error-banner" style={{ marginTop: 10, fontSize: 12 }}>{geoError}</div>}
+        {celebration && <CelebrationOverlay kind={celebration} onDone={() => setCelebration(null)} />}
       </div>
     );
   }
