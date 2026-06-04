@@ -56,7 +56,15 @@
       "mcp__b6c92573-b002-4409-988e-cfbd7de268f8__search_threads",
       "mcp__b6c92573-b002-4409-988e-cfbd7de268f8__get_thread",
       "Bash(node \"C:/Users/power/Downloads/submit_new_entries.js\")",
-      "Bash(node \"C:/Users/power/Downloads/fix_evan_dlugosz.js\")"
+      "Bash(node \"C:/Users/power/Downloads/fix_evan_dlugosz.js\")",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__list_projects",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__list_tables",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__get_project_url",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__get_publishable_keys",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__apply_migration",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__execute_sql",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__get_project",
+      "mcp__1f4640c4-1231-4ef7-ad90-d32d428b5793__list_migrations"
     ]
   }
 }

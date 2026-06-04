@@ -1,25 +1,34 @@
 export default function RulesPage() {
   const rules = [
-    { t: 'Pick 16', b: 'Build a 16-player roster with 1 goalie, 6 defensemen, and 9 forwards. Each pick must come from a different playoff team.' },
-    { t: 'One per team', b: "You can only select one player from each of the 16 playoff teams. If your guy gets eliminated, you live with it." },
-    { t: 'Scoring', b: 'Goals and assists count 1 point each for all players including goalies. Power play goals, shorthanded goals, and overtime goals each earn a bonus point. Goalie wins are worth 2 pts, losses −1, shutouts +2. All stats pulled live from NHL.com.' },
+    {
+      t: 'Play up to 4 rounds a week',
+      b: 'Record as many rounds as you want each week, up to 4. Play different courses, different tees — it all counts.',
+    },
+    {
+      t: 'We take your best score',
+      b: 'Only your best net score from that week goes into the standings. Play more rounds for more chances at a great score.',
+    },
+    {
+      t: 'Points accumulate all season',
+      b: 'Weekly finishes earn points that stack up all year long. The leaderboard never resets — play consistently to stay on top.',
+    },
   ];
-  const scoring = [
-    { n: 1, l: 'Goal' },
-    { n: 1, l: 'Assist' },
-    { n: 1, l: 'Power Play Goal' },
-    { n: 1, l: 'Shorthanded Goal' },
-    { n: 1, l: 'Overtime Goal' },
-    { n: 2, l: 'Goalie Win' },
-    { n: -1, l: 'Goalie Loss' },
-    { n: 2, l: 'Shutout' },
+
+  const points = [
+    { place: '1st', pts: 10 },
+    { place: '2nd', pts: 7 },
+    { place: '3rd', pts: 5 },
+    { place: '4th', pts: 4 },
+    { place: '5th', pts: 3 },
+    { place: '6th', pts: 2 },
+    { place: '7th+', pts: 1 },
   ];
 
   return (
     <>
       <section className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
-          <h2><span className="strike">How it works</span></h2>
+          <h2>How It Works</h2>
         </div>
         <div className="rules-grid">
           {rules.map((r, i) => (
@@ -34,19 +43,34 @@ export default function RulesPage() {
 
       <section className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
-          <h2><span className="strike">Scoring</span></h2>
+          <h2>Weekly Points</h2>
         </div>
         <div className="scoring-grid">
-          {scoring.map((s, i) => (
+          {points.map((p, i) => (
             <div key={i} className="score-card">
-              <div className="n">{s.n > 0 ? `+${s.n}` : s.n}</div>
-              <div className="l">{s.l}</div>
+              <div className="n">+{p.pts}</div>
+              <div className="l">{p.place} place</div>
             </div>
           ))}
         </div>
-        <p style={{ marginTop: 16, fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
-          All stats pulled live from NHL.com. Ties in final standings broken by: (1) most goals on roster, (2) most players still active in the next round, (3) coin flip on live video.
-        </p>
+      </section>
+
+      <section className="card">
+        <div className="card-header">
+          <h2>Handicap Formula</h2>
+        </div>
+        <div style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--ink)' }}>
+          <p style={{ marginBottom: 12 }}>
+            <strong>Course Handicap (9 holes)</strong> = round(Handicap Index × Slope Rating ÷ 113 ÷ 2)
+          </p>
+          <p style={{ marginBottom: 12 }}>
+            <strong>Net Score</strong> = Gross Score − Course Handicap
+          </p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+            Slope Rating and Course Rating for each tee set are listed in the Course Directory.
+            Your handicap is applied automatically when you record a round — just enter your gross score.
+          </p>
+        </div>
       </section>
     </>
   );

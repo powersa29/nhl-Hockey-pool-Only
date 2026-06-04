@@ -1,23 +1,44 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
-import Header from '@/components/Header';
+import './golf.css';
+import GolfHeader from '@/components/GolfHeader';
 
 export const metadata: Metadata = {
-  title: 'NHL 2026 Playoff Pool',
-  description: 'Build your 16-team roster. Points roll in live from every playoff game.',
+  title: 'Glizzy Golf League',
+  description: '9-hole weekly stroke play. Handicap-adjusted net scoring.',
+  appleWebApp: {
+    capable: true,
+    title: 'Glizzy Golf',
+    statusBarStyle: 'black-translucent',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="theme-color" content="#166534" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="" />
+      </head>
       <body>
-        <div className="app">
-          <Header />
-          {children}
-          <footer style={{ marginTop: 40, paddingTop: 20, borderTop: '2px dashed var(--line)', textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
-            NHL 2026 Playoff Pool · Stats via NHL.com · Built for bragging rights 🏆
-          </footer>
+        <div className="golf-app">
+          <div className="golf-inner">
+            <GolfHeader />
+            {children}
+            <footer style={{ marginTop: 48, paddingTop: 20, borderTop: '2px dashed var(--line)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
+              Glizzy Golf League · 9-hole weekly stroke play · Handicap-adjusted net scoring
+            </footer>
+          </div>
         </div>
+        <Script id="sw-register" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+          }
+        `}</Script>
       </body>
     </html>
   );
