@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { insertRound, deleteRound, getOrCreateCurrentLeague, countPlayerRoundsThisWeek, getRoundsForLeague } from '@/lib/golf-db';
-import { toDateStr, weekBounds } from '@/lib/golf-scoring';
+import { insertRound, deleteRound, getOrCreateCurrentLeague, countPlayerRoundsThisWeek, getRoundsForLeague, getRoundsForPlayer, updateHandicap } from '@/lib/golf-db';
+import { toDateStr, weekBounds, scoreDifferential9, calcHandicapIndex } from '@/lib/golf-scoring';
 
 const ADMIN_TOKEN = 'GlizzyAdmin2026';
 
@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
     gross_score: Number(gross_score),
     played_at: toDateStr(new Date()),
   });
+
+  // Recalculate WHS handicap index from all recorded rounds
+  const allRounds = await getRoundsForPlayer(Number(player_id));
+  const diffs = allRounds
+    .filter(r => r.golf_tees?.slope_rating && r.golf_tees?.course_rating)
+    .map(r => scoreDifferential9(r.gross_score, r.golf_tees!.course_rating, r.golf_tees!.slope_rating));
+  const calc = calcHandicapIndex(diffs);
+  if (calc) await updateHandicap(Number(player_id), calc.calculatedHI).catch(() => {});
 
   return NextResponse.json(round, { status: 201 });
 }
