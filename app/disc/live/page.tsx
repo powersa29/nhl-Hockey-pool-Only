@@ -105,6 +105,7 @@ export default function DiscLivePage() {
   const [courseName, setCourseName] = useState('');
   const [pdgaResults, setPdgaResults] = useState<PdgaResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [totalHoles, setTotalHoles] = useState<9 | 18>(18);
   const [holePars, setHolePars] = useState<number[]>(Array(18).fill(DEFAULT_PAR));
 
@@ -192,6 +193,7 @@ export default function DiscLivePage() {
   async function searchPdga() {
     if (!courseQuery.trim()) return;
     setSearching(true);
+    setSearched(false);
     setPdgaResults([]);
     try {
       const res = await fetch(`/api/disc/courses/search?q=${encodeURIComponent(courseQuery)}`);
@@ -199,6 +201,7 @@ export default function DiscLivePage() {
       setPdgaResults(Array.isArray(data) ? data : []);
     } finally {
       setSearching(false);
+      setSearched(true);
     }
   }
 
@@ -523,7 +526,7 @@ export default function DiscLivePage() {
                 style={{ flex: 1 }}
                 placeholder="Search PDGA directory or type a name…"
                 value={courseQuery}
-                onChange={e => { setCourseQuery(e.target.value); setCourseName(e.target.value); }}
+                onChange={e => { setCourseQuery(e.target.value); setCourseName(e.target.value); setSearched(false); }}
                 onKeyDown={e => e.key === 'Enter' && searchPdga()}
               />
               <button className="btn ghost" style={{ padding: '0 14px', flexShrink: 0 }} onClick={searchPdga} disabled={searching}>
@@ -547,6 +550,11 @@ export default function DiscLivePage() {
                     <span style={{ color: 'var(--muted)', marginLeft: 8, fontSize: 11 }}>{c.city}, {c.state} · {c.holes} holes</span>
                   </button>
                 ))}
+              </div>
+            )}
+            {searched && pdgaResults.length === 0 && courseQuery.trim() && (
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, padding: '6px 10px', background: 'var(--ice-2)', borderRadius: 'var(--radius)' }}>
+                No PDGA results — "{courseQuery}" will be used as the course name. Just tap <strong>Start Round</strong>.
               </div>
             )}
           </div>
