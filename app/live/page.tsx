@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import type { Player, Course, Tee } from '@/lib/golf-db';
 import type { LivePin } from '@/components/GolfMap';
 import { courseHandicap9 } from '@/lib/golf-scoring';
@@ -743,6 +744,21 @@ export default function LivePage() {
 
   return (
     <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+        <button style={{
+          flex: 1, padding: '10px 8px', borderRadius: 'var(--radius-pill)',
+          border: '2px solid var(--green)', background: 'var(--green)', color: 'white',
+          fontWeight: 700, fontSize: 14, cursor: 'default',
+        }}>⛳ Golf</button>
+        <Link href="/disc/live" style={{ flex: 1 }}>
+          <button style={{
+            width: '100%', padding: '10px 8px', borderRadius: 'var(--radius-pill)',
+            border: '2px solid var(--line)', background: 'var(--chip)', color: 'var(--ink-soft)',
+            fontWeight: 700, fontSize: 14, cursor: 'pointer',
+          }}>🥏 Disc Golf</button>
+        </Link>
+      </div>
+
       <div className="section-header">
         <div>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><GolfPin size={20} color="var(--green-dark)" /> On Course</h2>

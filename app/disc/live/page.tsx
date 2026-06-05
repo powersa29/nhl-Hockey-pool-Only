@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import type { Player } from '@/lib/golf-db';
 import { GolfPin, MapPin, CheckCircle } from '@/components/icons';
 
@@ -499,6 +500,21 @@ export default function DiscLivePage() {
 
   return (
     <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+        <Link href="/live" style={{ flex: 1 }}>
+          <button style={{
+            width: '100%', padding: '10px 8px', borderRadius: 'var(--radius-pill)',
+            border: '2px solid var(--line)', background: 'var(--chip)', color: 'var(--ink-soft)',
+            fontWeight: 700, fontSize: 14, cursor: 'pointer',
+          }}>⛳ Golf</button>
+        </Link>
+        <button style={{
+          flex: 1, padding: '10px 8px', borderRadius: 'var(--radius-pill)',
+          border: '2px solid var(--green)', background: 'var(--green)', color: 'white',
+          fontWeight: 700, fontSize: 14, cursor: 'default',
+        }}>🥏 Disc Golf</button>
+      </div>
+
       <div className="section-header">
         <div>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><GolfPin size={20} color="var(--green-dark)" /> Disc Golf — On Course</h2>
