@@ -45,6 +45,24 @@
   100% { transform: translateY(115vh) rotate(var(--hd-spin, 360deg)); opacity: 0; }
 }
 
+@keyframes confetti-burst {
+  0%   { opacity: 1; transform: scale(1) rotate(0deg); }
+  70%  { opacity: 0.8; }
+  100% { opacity: 0; transform: scale(0.7) rotate(540deg) translateY(24px); }
+}
+@keyframes celebrate-pop {
+  0%   { transform: scale(0.2) rotate(-12deg); opacity: 0; }
+  55%  { transform: scale(1.25) rotate(6deg); opacity: 1; }
+  78%  { transform: scale(0.93) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes celebrate-bg {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* ── Override CSS tokens inside the golf wrapper — keeps component code unchanged */
 .golf-app {
   --ice:        #f0fdf4;
