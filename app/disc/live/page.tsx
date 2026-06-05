@@ -6,12 +6,13 @@ import { GolfPin, MapPin, CheckCircle } from '@/components/icons';
 
 type Step = 'setup' | 'playing' | 'done' | 'submitted';
 
-type CelebrationKind = 'birdie' | 'eagle' | 'ace' | 'snowman';
+type CelebrationKind = 'birdie' | 'eagle' | 'ace' | 'snowman' | 'par';
 const CELEBRATIONS: Record<CelebrationKind, { emoji: string; label: string; bg: string }> = {
   birdie:  { emoji: '🐦', label: 'Birdie!',  bg: 'rgba(21,128,61,0.92)'  },
   eagle:   { emoji: '🦅', label: 'Eagle!!',   bg: 'rgba(29,78,216,0.92)'  },
   ace:     { emoji: '🃏', label: 'Ace!!!',    bg: 'rgba(109,40,217,0.94)' },
   snowman: { emoji: '☃️', label: 'Snowman…', bg: 'rgba(15,23,42,0.90)'   },
+  par:     { emoji: '👍', label: 'Par!',       bg: 'rgba(55,65,81,0.88)'   },
 };
 
 function CelebrationOverlay({ kind, onDone }: { kind: CelebrationKind; onDone: () => void }) {
@@ -135,7 +136,6 @@ export default function DiscLivePage() {
     return () => { if (pollTimerRef.current) clearInterval(pollTimerRef.current); };
   }, []);
 
-  // Restore saved round
   useEffect(() => {
     const saved = localStorage.getItem('disc-round');
     if (!saved) return;
@@ -163,7 +163,6 @@ export default function DiscLivePage() {
     } catch {}
   }, []);
 
-  // Save round to localStorage
   useEffect(() => {
     if (step === 'playing' || step === 'done') {
       localStorage.setItem('disc-round', JSON.stringify({
@@ -277,6 +276,7 @@ export default function DiscLivePage() {
     if (score === 1)      celebKind = 'ace';
     else if (diff <= -2)  celebKind = 'eagle';
     else if (diff === -1) celebKind = 'birdie';
+    else if (diff === 0)  celebKind = 'par';
     else if (score === 8) celebKind = 'snowman';
     if (celebKind) {
       setCelebration(celebKind);
@@ -315,9 +315,7 @@ export default function DiscLivePage() {
     const gross = scores.reduce((a, b) => a + b, 0);
     const p = players.find(px => px.id === Number(playerId));
     if (p) {
-      // Find or create a course/tee in the DB would be needed for full integration;
-      // for now skip inserting into official rounds since disc golf doesn't have
-      // a matching tee entry. Just close the live round.
+      // disc golf rounds don't insert into golf_rounds (no tee ID)
     }
     if (liveRoundRef.current) {
       await fetch(`/api/live-scoring?id=${liveRoundRef.current}`, { method: 'DELETE' });
@@ -325,7 +323,7 @@ export default function DiscLivePage() {
     localStorage.removeItem('disc-round');
     setSubmitting(false);
     setStep('submitted');
-    void gross; // used in submitted screen below
+    void gross;
   }
 
   async function stopEverything() {
@@ -338,7 +336,6 @@ export default function DiscLivePage() {
     liveRoundRef.current = null; setConfirmEnd(false); pollLive();
   }
 
-  // ── Derived ───────────────────────────────────────────────────────────────
   const gross      = scores.reduce((a, b) => a + b, 0);
   const totalPar   = holePars.slice(0, totalHoles).reduce((a, b) => a + b, 0);
   const parThrough = holePars.slice(0, scores.length).reduce((a, b) => a + b, 0);
@@ -351,7 +348,6 @@ export default function DiscLivePage() {
   });
   const player = players.find(p => p.id === Number(playerId));
 
-  // ── SUBMITTED ─────────────────────────────────────────────────────────────
   if (step === 'submitted') {
     const finalVsPar = gross - totalPar;
     return (
@@ -374,7 +370,6 @@ export default function DiscLivePage() {
     );
   }
 
-  // ── DONE ──────────────────────────────────────────────────────────────────
   if (step === 'done') {
     const finalVsPar = gross - totalPar;
     return (
@@ -411,7 +406,6 @@ export default function DiscLivePage() {
     );
   }
 
-  // ── PLAYING ───────────────────────────────────────────────────────────────
   if (step === 'playing') {
     return (
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 16px' }}>
@@ -465,7 +459,6 @@ export default function DiscLivePage() {
           </div>
         </div>
 
-        {/* Others on course */}
         {liveList.filter(l => l.player_id !== Number(playerId)).length > 0 && (
           <div className="card" style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--muted)' }}>Others on course</div>
@@ -501,7 +494,6 @@ export default function DiscLivePage() {
     );
   }
 
-  // ── SETUP ─────────────────────────────────────────────────────────────────
   return (
     <div>
       <div className="section-header">

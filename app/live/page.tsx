@@ -29,12 +29,13 @@ interface HoleData {
   yards: number | null; handicap: number | null;
 }
 
-type CelebrationKind = 'birdie' | 'eagle' | 'ace' | 'snowman';
+type CelebrationKind = 'birdie' | 'eagle' | 'ace' | 'snowman' | 'par';
 const CELEBRATIONS: Record<CelebrationKind, { emoji: string; label: string; bg: string }> = {
   birdie:  { emoji: '🐦', label: 'Birdie!',       bg: 'rgba(21,128,61,0.92)'  },
   eagle:   { emoji: '🦅', label: 'Eagle!!',        bg: 'rgba(29,78,216,0.92)'  },
   ace:     { emoji: '🃏', label: 'Hole in One!!!', bg: 'rgba(109,40,217,0.94)' },
   snowman: { emoji: '☃️', label: 'Snowman...',     bg: 'rgba(15,23,42,0.90)'   },
+  par:     { emoji: '👍', label: 'Par!',            bg: 'rgba(55,65,81,0.88)'   },
 };
 
 function CelebrationOverlay({ kind, onDone }: { kind: CelebrationKind; onDone: () => void }) {
@@ -378,6 +379,7 @@ export default function LivePage() {
       if (score === 1)      celebKind = 'ace';
       else if (diff <= -2)  celebKind = 'eagle';
       else if (diff === -1) celebKind = 'birdie';
+      else if (diff === 0)  celebKind = 'par';
       else if (score === 8) celebKind = 'snowman';
       if (celebKind) {
         setCelebration(celebKind);
@@ -475,7 +477,6 @@ export default function LivePage() {
             </tr>
           </thead>
           <tbody>
-            {/* Par row — always shown; values filled once hole data loads */}
             <tr style={{ background: 'var(--ice-2)' }}>
               <td style={{ ...stickyLabel, background: 'var(--ice-2)', color: 'var(--muted)', fontWeight: 600 }}>Par</td>
               {holeRange.map((h, i) => {
@@ -514,7 +515,6 @@ export default function LivePage() {
                 <td style={{ ...cellSt, borderLeft: '2px solid var(--line)' }} />
               </tr>
             )}
-            {/* Score row */}
             <tr style={{ borderTop: '2px solid var(--green)' }}>
               <td style={{ ...stickyLabel, fontWeight: 800, fontSize: 13 }}>
                 {player?.name.split(' ')[0] ?? 'Score'}
@@ -552,7 +552,6 @@ export default function LivePage() {
           </tbody>
         </table>
 
-        {/* Totals footer */}
         {scores.length > 0 && (
           <div style={{ display: 'flex', borderTop: '1px solid var(--line)', fontSize: 12 }}>
             <div style={{ flex: 1, textAlign: 'center', padding: '7px 4px', borderRight: '1px solid var(--line)' }}>
@@ -575,9 +574,6 @@ export default function LivePage() {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════
-  // SUBMITTED
-  // ════════════════════════════════════════════════════════════════════
   if (step === 'submitted') {
     return (
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px', textAlign: 'center' }}>
@@ -606,9 +602,6 @@ export default function LivePage() {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════
-  // DONE — review
-  // ════════════════════════════════════════════════════════════════════
   if (step === 'done') {
     return (
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 16px' }}>
@@ -652,14 +645,10 @@ export default function LivePage() {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════
-  // PLAYING
-  // ════════════════════════════════════════════════════════════════════
   if (step === 'playing') {
     return (
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 16px' }}>
 
-        {/* Status bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, fontSize: 12 }}>
           <div>
             <strong>{player?.name}</strong>
@@ -672,12 +661,10 @@ export default function LivePage() {
           </div>
         </div>
 
-        {/* Scorecard table */}
         <div className="card" style={{ padding: 0, marginBottom: 14, overflow: 'hidden' }}>
           <ScorecardTable />
         </div>
 
-        {/* Current hole + score entry */}
         <div className="card" style={{ marginBottom: 14 }}>
           <div style={{ textAlign: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
@@ -726,7 +713,6 @@ export default function LivePage() {
             </div>
         </div>
 
-        {/* Collapsible map + group */}
         <div style={{ marginBottom: 14 }}>
           <button onClick={() => setMapCollapsed(c => !c)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--muted)', padding: '2px 0', marginBottom: 4 }}>
             {mapCollapsed ? '▶ Show map & group' : '▼ Hide map'}
@@ -771,9 +757,6 @@ export default function LivePage() {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════
-  // SETUP
-  // ════════════════════════════════════════════════════════════════════
   return (
     <div>
       <div className="section-header">
@@ -796,7 +779,6 @@ export default function LivePage() {
       </div>
 
       <div className="live-grid">
-        {/* Start card */}
         <div className="card">
           <h3 style={{ fontSize: 16, marginBottom: 16 }}>Start Your Round</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -826,7 +808,6 @@ export default function LivePage() {
               </div>
             )}
 
-            {/* Front / Back 9 selector */}
             {teeId && (
               <div className="form-row" style={{ marginBottom: 0 }}>
                 <label>Which 9?</label>
@@ -874,7 +855,6 @@ export default function LivePage() {
           </div>
         </div>
 
-        {/* On course now */}
         <div className="card">
           <h3 style={{ fontSize: 16, marginBottom: 12 }}>On Course Now</h3>
           {liveRounds.length === 0 ? (
