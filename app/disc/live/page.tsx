@@ -105,7 +105,6 @@ export default function DiscLivePage() {
   const [courseName, setCourseName] = useState('');
   const [pdgaResults, setPdgaResults] = useState<PdgaResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searched, setSearched]   = useState(false);
   const [totalHoles, setTotalHoles] = useState<9 | 18>(18);
   const [holePars, setHolePars] = useState<number[]>(Array(18).fill(DEFAULT_PAR));
 
@@ -193,7 +192,6 @@ export default function DiscLivePage() {
   async function searchPdga() {
     if (!courseQuery.trim()) return;
     setSearching(true);
-    setSearched(false);
     setPdgaResults([]);
     try {
       const res = await fetch(`/api/disc/courses/search?q=${encodeURIComponent(courseQuery)}`);
@@ -201,7 +199,6 @@ export default function DiscLivePage() {
       setPdgaResults(Array.isArray(data) ? data : []);
     } finally {
       setSearching(false);
-      setSearched(true);
     }
   }
 
@@ -264,11 +261,7 @@ export default function DiscLivePage() {
             if (lastPos.current) pushLocation(lastPos.current.lat, lastPos.current.lng);
           }, UPDATE_MS);
         },
-        err => setGeoError(
-          err.code === 1
-            ? 'Location permission denied — scoring only.'
-            : 'Could not get GPS — scoring only.',
-        ),
+        err => setGeoError(err.code === 1 ? 'Location permission denied — scoring only.' : 'Could not get GPS — scoring only.'),
         { enableHighAccuracy: true, timeout: 10_000 },
       );
     }
@@ -279,7 +272,6 @@ export default function DiscLivePage() {
     const diff = score - par;
     setFlashLabel(scoreName(score, par));
     setTimeout(() => setFlashLabel(''), 1400);
-
     let celebKind: CelebrationKind | null = null;
     if (score === 1)      celebKind = 'ace';
     else if (diff <= -2)  celebKind = 'eagle';
@@ -290,7 +282,6 @@ export default function DiscLivePage() {
       setCelebration(celebKind);
       setTimeout(() => setCelebration(null), 2400);
     }
-
     const next = [...scores, score];
     setScores(next);
     if (liveRoundRef.current) {
@@ -302,9 +293,7 @@ export default function DiscLivePage() {
     if (currentHole >= totalHoles - 1) {
       if (celebKind) setTimeout(() => setStep('done'), 2200);
       else setStep('done');
-    } else {
-      setCurrentHole(h => h + 1);
-    }
+    } else { setCurrentHole(h => h + 1); }
   }
 
   function undoLast() {
@@ -534,7 +523,7 @@ export default function DiscLivePage() {
                 style={{ flex: 1 }}
                 placeholder="Search PDGA directory or type a name…"
                 value={courseQuery}
-                onChange={e => { setCourseQuery(e.target.value); setCourseName(e.target.value); setSearched(false); }}
+                onChange={e => { setCourseQuery(e.target.value); setCourseName(e.target.value); }}
                 onKeyDown={e => e.key === 'Enter' && searchPdga()}
               />
               <button className="btn ghost" style={{ padding: '0 14px', flexShrink: 0 }} onClick={searchPdga} disabled={searching}>
@@ -558,11 +547,6 @@ export default function DiscLivePage() {
                     <span style={{ color: 'var(--muted)', marginLeft: 8, fontSize: 11 }}>{c.city}, {c.state} · {c.holes} holes</span>
                   </button>
                 ))}
-              </div>
-            )}
-            {searched && pdgaResults.length === 0 && courseQuery.trim() && (
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, padding: '6px 10px', background: 'var(--ice-2)', borderRadius: 'var(--radius)' }}>
-                No PDGA results — &quot;{courseQuery}&quot; will be used as the course name. Just tap <strong>Start Round</strong>.
               </div>
             )}
           </div>
@@ -633,42 +617,45 @@ function ScorecardTable({ scores, holePars, totalHoles, playerName, currentHole 
             {holes.map((_, i) => (
               <th key={i} style={{
                 ...cellSt,
-                background: currentHole !== undefined && i === currentHole && scores.length <= i ? '#14532d' : 'var(--green-dark)',
+                background: currentHole !== undefined && i === currentHole ? '#14532d' : 'var(--green-dark)',
                 color: 'white', fontWeight: currentHole !== undefined && i === currentHole ? 800 : 600,
-                borderBottom: currentHole !== undefined && i === currentHole && scores.length <= i ? '3px solid #4ade80' : undefined,
+                borderBottom: currentHole !== undefined && i === currentHole ? '3px solid #4ade80' : undefined,
               }}>{i + 1}</th>
             ))}
-            <th style={{ ...cellSt, background: 'var(--green-deep)', color: 'white', fontWeight: 700, borderLeft: '2px solid rgba(255,255,255,0.2)' }}>Tot</th>
+            <th style={{ ...cellSt, background: '#166534', color: 'white', fontWeight: 700, borderLeft: '2px solid rgba(255,255,255,0.2)' }}>Tot</th>
           </tr>
         </thead>
         <tbody>
           <tr style={{ background: 'var(--ice-2)' }}>
-            <td style={{ ...stickyLabel, background: 'var(--ice-2)', color: 'var(--muted)', fontWeight: 600 }}>Par</td>
-            {holes.map((par, i) => (
-              <td key={i} style={{ ...cellSt, fontWeight: 700 }}>{par}</td>
-            ))}
+            <td style={{ ...stickyLabel, color: 'var(--muted)', background: 'var(--ice-2)', fontWeight: 600 }}>Par</td>
+            {holes.map((par, i) => <td key={i} style={{ ...cellSt }}>{par}</td>)}
             <td style={{ ...cellSt, fontWeight: 800, borderLeft: '2px solid var(--line)' }}>{totalPar}</td>
           </tr>
           <tr style={{ borderTop: '2px solid var(--green)' }}>
             <td style={{ ...stickyLabel, fontWeight: 800, fontSize: 12 }}>{playerName.split(' ')[0]}</td>
             {holes.map((par, i) => {
               const s = scores[i];
-              const isActive = currentHole !== undefined && i === currentHole && s === undefined;
+              const isActive = currentHole !== undefined && i === currentHole;
               if (s !== undefined) {
-                return <td key={i} style={{ ...cellSt, padding: '3px 2px' }}><ScoreBubble score={s} par={par} size={22} /></td>;
+                const diff = s - par;
+                const bg = diff <= -2 ? '#1d4ed8' : diff === -1 ? '#15803d' : diff === 0 ? 'transparent' : diff === 1 ? '#92400e' : '#991b1b';
+                const color = diff === 0 ? 'var(--ink)' : 'white';
+                return (
+                  <td key={i} style={{ ...cellSt, padding: '3px 2px' }}>
+                    <div style={{ width: 22, height: 22, margin: '0 auto', borderRadius: diff <= 0 ? '50%' : 3, background: bg, color, fontWeight: 700, fontSize: 11, display: 'grid', placeItems: 'center' }}>{s}</div>
+                  </td>
+                );
               }
               if (isActive) {
                 return (
                   <td key={i} style={{ ...cellSt, background: 'rgba(21,128,61,0.1)' }}>
-                    <div style={{ width: 22, height: 22, margin: '0 auto', border: '2px dashed var(--green)', borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 9, color: 'var(--green)', fontWeight: 700, animation: 'gpulse 1.4s infinite' }}>▼</div>
+                    <div style={{ width: 22, height: 22, margin: '0 auto', border: '2px dashed var(--green)', borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--green)', fontWeight: 700, animation: 'gpulse 1.4s infinite' }}>▼</div>
                   </td>
                 );
               }
               return <td key={i} style={cellSt} />;
             })}
-            <td style={{ ...cellSt, fontWeight: 800, fontSize: 13, borderLeft: '2px solid var(--line)' }}>
-              {scores.length > 0 ? gross : ''}
-            </td>
+            <td style={{ ...cellSt, fontWeight: 800, fontSize: 13, borderLeft: '2px solid var(--line)' }}>{scores.length > 0 ? gross : ''}</td>
           </tr>
         </tbody>
       </table>

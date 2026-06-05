@@ -23,12 +23,7 @@ export async function GET(req: NextRequest) {
     const res = await fetch(
       `https://www.pdga.com/apps/course/json?${params}`,
       {
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-          'Referer': 'https://www.pdga.com/course-directory',
-        },
+        headers: { Accept: 'application/json', 'User-Agent': 'GlizzyGolfLeague/1.0' },
         signal: AbortSignal.timeout(6000),
       },
     );
