@@ -66,14 +66,6 @@ export interface StandingRow {
   rank: number;
 }
 
-export interface WeeklyWinner {
-  league: League;
-  player: Player;
-  net: number;
-  gross: number;
-  pointsAwarded: number;
-}
-
 export interface SeasonStandingRow {
   player: Player;
   points: number;
@@ -211,6 +203,41 @@ export async function getLeagues(): Promise<League[]> {
   return data ?? [];
 }
 
+export async function addNextLeagueWeek(): Promise<{ created: League | null; alreadyExists: boolean }> {
+  const { data: latest, error } = await db()
+    .from('golf_leagues')
+    .select('end_date')
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !latest) throw new Error('Could not fetch latest league week');
+
+  const lastEnd = new Date(`${latest.end_date}T12:00:00Z`);
+  const nextStart = new Date(lastEnd);
+  nextStart.setUTCDate(nextStart.getUTCDate() + 1);
+  const nextEnd = new Date(nextStart);
+  nextEnd.setUTCDate(nextEnd.getUTCDate() + 6);
+
+  const startStr = nextStart.toISOString().slice(0, 10);
+  const endStr = nextEnd.toISOString().slice(0, 10);
+  const label = nextStart.toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+  });
+
+  const { data, error: insertError } = await db()
+    .from('golf_leagues')
+    .insert({ name: `Week of ${label}`, start_date: startStr, end_date: endStr })
+    .select()
+    .single();
+
+  if (insertError) {
+    if (insertError.code === '23505') return { created: null, alreadyExists: true };
+    throw insertError;
+  }
+  return { created: data, alreadyExists: false };
+}
+
 // ── Rounds ────────────────────────────────────────────────────────────────────
 
 export async function getRoundsForLeague(leagueId: number): Promise<Round[]> {
@@ -346,39 +373,4 @@ export async function getSeasonStandings(): Promise<SeasonStandingRow[]> {
 
   rows.forEach((r, i) => { r.rank = i + 1; });
   return rows;
-}
-
-// ── Weekly Winners ─────────────────────────────────────────────────────────────
-
-export async function getWeeklyWinners(): Promise<WeeklyWinner[]> {
-  const leagues = await getLeagues();
-  const currentStart = toDateStr(weekBounds().start);
-  const pastLeagues = leagues.filter(l => l.start_date < currentStart);
-
-  const winners = (
-    await Promise.all(
-      pastLeagues.map(async l => {
-        const standing = await getStandings(l.id);
-        const active = standing.filter(r => r.bestNet !== null);
-        const top = active[0];
-        if (!top) return null;
-        const bestRound = top.rounds.reduce<Round | null>((best, r) => {
-          if (!best) return r;
-          const n = netScore(r.gross_score, top.player.handicap_index, r.golf_tees?.slope_rating ?? 113);
-          const bn = netScore(best.gross_score, top.player.handicap_index, best.golf_tees?.slope_rating ?? 113);
-          return n < bn ? r : best;
-        }, null);
-        return {
-          league: l,
-          player: top.player,
-          net: top.bestNet!,
-          gross: bestRound?.gross_score ?? 0,
-          pointsAwarded: WEEK_POINTS[0],
-        } satisfies WeeklyWinner;
-      }),
-    )
-  ).filter((w): w is WeeklyWinner => w !== null);
-
-  winners.sort((a, b) => b.league.start_date.localeCompare(a.league.start_date));
-  return winners;
 }

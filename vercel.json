@@ -1,12 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/weekly-kickoff",
-      "schedule": "0 13 * * 1"
-    },
-    {
-      "path": "/api/cron/end-rounds",
-      "schedule": "0 4 * * *"
+      "path": "/api/cron/new-week",
+      "schedule": "0 6 * * 1"
     }
   ]
 }
