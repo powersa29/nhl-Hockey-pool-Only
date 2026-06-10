@@ -6,7 +6,7 @@ import Avatar from '@/components/Avatar';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-export const revalidate = 600;
+export const revalidate = 60;
 
 export default async function ParticipantPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
